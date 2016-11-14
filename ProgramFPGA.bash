@@ -281,6 +281,13 @@ printf "\n"
 printf "  SUMMARY:\n"
 printf "============================================================\n"
 
+printf "Programing method used:                           "
+if [ $USE_FSB ]; then
+    printf "1st stage boot\n"
+else
+    printf "2nd stage boot\n"
+fi
+
 printf "Shelfnamager name:                                $SHELFMANAGER\n"
 
 printf "Crate ID:                                         $CRATE_ID\n"
