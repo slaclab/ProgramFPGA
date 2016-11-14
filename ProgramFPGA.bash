@@ -210,14 +210,17 @@ fi
 
 # Check connection between CPU and FPGA.
 if [ -z $RT ]; then
-    # On non-RT linux, try ping as arping need root permissions which we don't usually have
-    printf "Tesing connection between CPU and FPGA (using ping)...      "
-    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
-        # We don't exit as we don't know if arping works...
-        printf "FPGA unreachable!\n"
-    else
-        printf "OK!\n"
-    fi    
+    if [ -z $USE_FSB ]; then
+        # On non-RT linux, try ping as arping need root permissions which we don't usually have
+        # But try it only when using 2nd stage boot, as ping is not implemented on 1st stage boot
+        printf "Tesing connection between CPU and FPGA (using ping)...      "
+        if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+            # We don't exit as we don't know if arping works...
+            printf "FPGA unreachable!\n"
+        else
+            printf "OK!\n"
+        fi    
+    fi
 else
     printf "Tesing connection between CPU and FPGA (using arping)...    "
     if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
