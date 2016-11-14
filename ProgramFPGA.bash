@@ -3,12 +3,14 @@
 # Usage message
 usage() {
     echo "usage: ProgramFPGA [-s|--shelfmanager shelfmanager_name] [-n|--slot slot_number] [-m|--mcs mcs_file] [-c|--cpu cpu_name] [-h|--help]"
-    echo "    -s|--shelfmanager shelfmaneger name : name of the crate's shelfmanager"
-    echo "    -n|--slot slot number               : slot number"
-    echo "    -m|--mcs mcs file                   : path to the mcs file"
-    echo "    -c|--cpu cpu name                   : name of the cpu connected to the board"
-    echo "    -f|--fsb                            : use first stage boot"
-    echo "    -h|--help                           : show this message"
+    echo "    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager"
+    echo "    -n|--slot         slot_number            : slot number"
+    echo "    -m|--mcs          mcs_file               : path to the mcs file"
+    echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board"
+    echo "    -u|--user         cpu_user_name          : user name for CPU using RT kernels (default: laci)"
+    echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
+    echo "    -f|--fsb                                 : use first stage boot"
+    echo "    -h|--help                                : show this message"
     echo
     exit
 }
@@ -33,6 +35,14 @@ case $key in
     ;;
     -c|--cpu)
     CPU="$2"
+    shift
+    ;;
+    -u|--user)
+    RT_USER="$2"
+    shift
+    ;;
+    -a|--addr)
+    CPU_OCTET="$2"
     shift
     ;;
     -f|--fsb)
@@ -72,6 +82,14 @@ fi
 if [ ! -f "$MCS_FILE" ]; then
     echo "MCS file not found!"
     usage
+fi
+
+if [ -z $RT_USER ]; then
+    RT_USER="laci"
+fi
+
+if [ -z $CPU_OCTET ]; then
+    CPU_OCTET="1"
 fi
 
 # Programing methos to use
@@ -123,7 +141,7 @@ fi
 
 # Check kernel version on CPU and choose the appropiate programming tool binary
 printf "Looking for CPU kernel type...                              "
-RT=$(ssh -x laci@$CPU /bin/uname -r | grep rt)
+RT=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep rt)
 if [ -z $RT ]; then
 	printf "non-RT kernel\n"
 	FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/master/O.linux-x86_64/FirmwareLoader
@@ -148,12 +166,12 @@ FPGA_IP="10.0.$CRATE_ID.$(expr 100 + $SLOT)"
 printf "FPGA IP address:                                            $FPGA_IP\n"
 
 # Calculate CPU IP address connected to the FPGA, whic alwys ends in x.x.x.1 
-CPU_IP="10.0.$CRATE_ID.1"
+CPU_IP="10.0.$CRATE_ID.$CPU_OCTET"
 printf "CPU IP address:                                             $CPU_IP\n"
 
 # Check network interface name on CPU connected to the FPGA based on its IP address. Exit on error
 printf "Looking interface connected to the FPGA...                  "
-CPU_ETH=$(ssh -x laci@$CPU /sbin/ifconfig | grep -B1 $CPU_IP | awk 'NR==1{print $1}')
+CPU_ETH=$(ssh -x $RT_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
@@ -194,7 +212,7 @@ fi
 if [ -z $RT ]; then
     # On non-RT linux, try ping as arping need root permissions which we don't usually have
     printf "Tesing connection between CPU and FPGA (using ping)...      "
-    if ! ssh -x laci@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
         # We don't exit as we don't know if arping works...
         printf "FPGA unreachable!\n"
     else
@@ -202,7 +220,7 @@ if [ -z $RT ]; then
     fi    
 else
     printf "Tesing connection between CPU and FPGA (using arping)...    "
-    if ! ssh -x laci@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
         # In this case we do exit in case of an error
         printf "FPGA unreachable!\n"
 
@@ -222,7 +240,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x laci@$CPU $FW_LOADER_BIN -a $FPGA_IP $MCS_FILE
+ssh -x $RT_USER@$CPU $FW_LOADER_BIN -a $FPGA_IP $MCS_FILE
 printf "\n"
 
 if [ $USE_FSB ]; then
@@ -315,7 +333,7 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 if [ -z $RT ]; then
     # On non-RT linux, try ping as arping need root permissions which we don't usually have
     printf "Connection between CPU and FPGA (using ping):     "
-    if ! ssh -x laci@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
         printf "FPGA unreachable!\n"
     else
         printf "OK!\n"
@@ -323,7 +341,7 @@ if [ -z $RT ]; then
 else
     # on RT linux, use arping as we do have root permission here
     printf "Connection between CPU and FPGA (using arping):   "
-    if ! ssh -x laci@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
         printf "FPGA unreachable!\n"
     else
         printf "OK!\n"
