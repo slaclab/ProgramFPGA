@@ -2,7 +2,7 @@
 
 # Usage message
 usage() {
-    echo "usage: ProgramFPGA [-s|--shelfmanager shelfmanager_name] [-n|--slot slot_number] [-m|--mcs mcs_file] [-c|--cpu cpu_name] [-h|--help]"
+    echo "usage: ProgramFPGA -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
     echo "    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager"
     echo "    -n|--slot         slot_number            : slot number"
     echo "    -m|--mcs          mcs_file               : path to the mcs file"
