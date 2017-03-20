@@ -139,16 +139,35 @@ else
     printf "Connection OK!\n"
 fi
 
-# Check kernel version on CPU and choose the appropiate programming tool binary
+# Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
 RT=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep rt)
 if [ -z $RT ]; then
 	printf "non-RT kernel\n"
-	FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/master/O.linux-x86_64/FirmwareLoader
+	ARCH=rhel6-x86_64
 else
 	printf "RT kernel\n"
-	FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/master/O.linuxRT-x86_64/FirmwareLoader
+
+    # Check buildroot version
+    printf "Looking for Buildroot version...                  "
+    BR2015=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep 3.18.11)
+    if [ $BR2015 ]; then
+        printf "buildroot-2015.02-x86_64\n"
+    	ARCH=buildroot-2015.02-x86_64
+    else
+        BR2016=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep 4.8.11)
+        if [ $BR2016 ]; then
+            printf "buildroot-2016.11.1\n"
+            ARCH=buildroot-2016.11.1-x86_64
+        else
+            prtinf "Buildroot version not supported!"
+            exit
+        fi
+    fi
 fi
+
+# Choosing the appropiate programming tool binary
+FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/R1.0.0/$ARCH/bin/FirmwareLoader
 
 # Read crate ID from FPGA
 printf "Looking for crate ID...                           "
