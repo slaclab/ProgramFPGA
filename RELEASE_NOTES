@@ -7,6 +7,9 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.2: 2017-03-20 J. Vasquez
+    * Update to FirmwareLoader R1.0.1
+
 R1.0.1: 2017-03-20 J. Vasquez
     * Adapted to the new folder structure for the FirmwareLoader.
     * Added support for the new buildroot version 2016.
