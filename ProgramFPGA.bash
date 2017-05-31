@@ -169,6 +169,9 @@ fi
 # Choosing the appropiate programming tool binary
 FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current/$ARCH/bin/FirmwareLoader
 
+# YAML definiton used by the programming tool
+YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/FirmwareLoader.yaml
+
 # Read crate ID from FPGA
 printf "Looking for crate ID...                           "
 CRATE_ID=$(ipmitool -I lan -H $SHELFMANAGER  -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xFD 0x02 | awk '{ print $1 + $2*256 }')
@@ -262,7 +265,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x $RT_USER@$CPU $FW_LOADER_BIN -a $FPGA_IP $MCS_FILE
+ssh -x $RT_USER@$CPU $FW_LOADER_BIN -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
 printf "\n"
 
 if [ $USE_FSB ]; then
