@@ -7,6 +7,9 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.3: 2017-05-31 J. Vasquez
+    * Use YAML for defining the register space used by the FirmwareLoader.
+
 R1.0.2: 2017-03-20 J. Vasquez
     * Update to FirmwareLoader R1.0.1
 
