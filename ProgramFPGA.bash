@@ -167,7 +167,7 @@ else
 fi
 
 # Choosing the appropiate programming tool binary
-FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/R1.0.1/$ARCH/bin/FirmwareLoader
+FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current/$ARCH/bin/FirmwareLoader
 
 # Read crate ID from FPGA
 printf "Looking for crate ID...                           "
