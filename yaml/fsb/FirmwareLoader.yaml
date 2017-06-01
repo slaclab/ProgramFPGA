@@ -1,0 +1,41 @@
+##############################################################################
+## This file is part of 'SLAC Firmware Standard Library'.
+## It is subject to the license terms in the LICENSE.txt file found in the 
+## top-level directory of this distribution and at: 
+##    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
+## No part of 'SLAC Firmware Standard Library', including this file, 
+## may be copied, modified, propagated, or distributed except according to 
+## the terms contained in the LICENSE.txt file.
+##############################################################################
+#schemaversion 3.0.0
+#once FirmwareLoader.yaml
+#include AxiVersion.yaml
+#include AxiMicronN25Q.yaml
+
+mmio: &mmio
+  class: MMIODev
+  size: 0x100000000
+  children:
+    vers:
+      <<: *AxiVersion
+      at:
+        offset: 0x00000000
+    prom:
+      <<: *AxiMicronN25Q
+      class: AxiMicronN25Q
+      at:
+        offset: 0x02000000
+
+SRPProtoConfig: &SRPProtoConfig
+  SRP:
+    protocolVersion: SRP_UDP_V2
+  UDP:
+    port: 8192
+
+FirmwareLoader: 
+  class: NetIODev
+  ipAddr: ~
+  children:
+    AxiTop:
+      <<: *mmio
+      at: *SRPProtoConfig
