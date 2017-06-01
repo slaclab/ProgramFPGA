@@ -18,15 +18,21 @@ usage() {
 # Get the Build String
 getBuildString()
 {
-  ADDR=0x1000
-  ADDR_STEP=0x10
-  BS_LEN=0x100
-  for i in $( seq 1 $((BS_LEN/ADDR_STEP)) ); do
-    BS=$BS$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 $((ADDR/0x100)) $((ADDR%0x100)) $ADDR_STEP)
-    ADDR=$((ADDR+ADDR_STEP))
-  done
+    ADDR=0x1000
+    ADDR_STEP=0x10
+    BS_LEN=0x100
+    for i in $( seq 1 $((BS_LEN/ADDR_STEP)) ); do
+      BS=$BS$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 $((ADDR/0x100)) $((ADDR%0x100)) $ADDR_STEP)
+      ADDR=$((ADDR+ADDR_STEP))
+    done
 
-  echo $BS 
+    echo $BS 
+}
+
+# Get FPGA Version
+getFpgaVersion()
+{
+  echo $(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
 }
 
 # Verify inputs arguments
@@ -135,7 +141,7 @@ printf "\n"
 
 # Current firmware version from FPGA
 printf "Current FPGA Version:                             "
-VER_OLD=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
+VER_OLD=$(getFpgaVersion)
 for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
 printf "0x$VER_SWAP_OLD\n"
 
@@ -229,7 +235,7 @@ if [ $USE_FSB ]; then
     
     # Read FSB firmware version
     printf "1st stage boot FPGA Version:                      "
-    VER_FSB=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
+    VER_FSB=$(getFpgaVersion)
     for c in $VER_FSB ; do VER_SWAP_FSB="$c"$VER_SWAP_FSB ; done
     printf "0x$VER_SWAP_FSB\n"
 fi
@@ -293,7 +299,7 @@ printf "\n"
 
 # Read the new firmware version
 printf "New FPGA Version:                                 "
-VER_NEW=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
+VER_NEW=$(getFpgaVersion)
 for c in $VER_NEW ; do VER_SWAP_NEW="$c"$VER_SWAP_NEW ; done
 printf "0x$VER_SWAP_NEW\n"
 
