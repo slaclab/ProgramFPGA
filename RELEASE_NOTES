@@ -7,6 +7,11 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.4: 2017-06-01 J. Vasquez
+    * Change Build String size from 96 chars to 256.
+    * Add a YAML definition for the 1st stage bootloader image.
+    * Use functions to read the Build String and FPGA Version values.
+
 R1.0.3: 2017-05-31 J. Vasquez
     * Use YAML for defining the register space used by the FirmwareLoader.
 
