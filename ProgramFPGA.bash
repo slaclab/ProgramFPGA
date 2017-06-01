@@ -15,6 +15,20 @@ usage() {
     exit
 }
 
+# Get the Build String
+getBuildString()
+{
+  ADDR=0x1000
+  ADDR_STEP=0x10
+  BS_LEN=0x100
+  for i in $( seq 1 $((BS_LEN/ADDR_STEP)) ); do
+    BS=$BS$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 $((ADDR/0x100)) $((ADDR%0x100)) $ADDR_STEP)
+    ADDR=$((ADDR+ADDR_STEP))
+  done
+
+  echo $BS 
+}
+
 # Verify inputs arguments
 while [[ $# -gt 0 ]]
 do
@@ -115,12 +129,7 @@ printf "IPMB address:                                     0x%X\n" $IPMB
 
 # Current firmware build string from FPGA
 printf "Current firmware build string:                    "
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x00 0x10)
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x10 0x10)
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x20 0x10)
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x30 0x10)
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x40 0x10)
-BS_OLD=$BS_OLD$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x50 0x10)
+BS_OLD=$(getBuildString)
 for c in $BS_OLD ; do printf "\x$c" ; done
 printf "\n"
 
@@ -214,12 +223,7 @@ if [ $USE_FSB ]; then
 
     # Read FSB firmware build string
     printf "1st stage boot firmware build string:             "
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x00 0x10)
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x10 0x10)
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x20 0x10)
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x30 0x10)
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x40 0x10)
-    BS_FSB=$BS_FSB$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x50 0x10)
+    BS_FSB=$(getBuildString)
     for c in $BS_FSB ; do printf "\x$c" ; done
     printf "\n"
     
@@ -283,12 +287,7 @@ printf "Done\n"
 
 # Read the new firmware build string
 printf "New firmware build string:                        "
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x00 0x10)
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x10 0x10)
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x20 0x10)
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x30 0x10)
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x40 0x10)
-BS_NEW=$BS_NEW$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x10 0x50 0x10)
+BS_NEW=$(getBuildString)
 for c in $BS_NEW ; do printf "\x$c" ; done
 printf "\n"
 
