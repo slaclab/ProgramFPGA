@@ -185,7 +185,11 @@ fi
 FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current/$ARCH/bin/FirmwareLoader
 
 # YAML definiton used by the programming tool
-YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/FirmwareLoader.yaml
+if [ $USE_FSB ]; then
+    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/fsb/FirmwareLoader.yaml
+else
+    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/FirmwareLoader.yaml
+fi
 
 # Read crate ID from FPGA
 printf "Looking for crate ID...                           "
