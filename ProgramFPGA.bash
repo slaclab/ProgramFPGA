@@ -297,20 +297,42 @@ fi
 # Load image into FPGA
 printf "Programming the FPGA...\n"
 ssh -x $RT_USER@$CPU $FW_LOADER_BIN -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
-printf "\n"
 
+# Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
+RET=$?  
+
+# Show result of the firmaware loading proceccess
+printf "\n"
+if [ "$RET" -eq 0 ]; then
+    printf "FPGA programmed successfully!\n\n"
+else
+    printf "ERROR: Errors were found during the FPGA Programming phase (Error code $RET)\n\n"
+fi
+
+# If 1st stage boot was used, return boot address to the second stage boot
 if [ $USE_FSB ]; then
     printf "Setting boot address back to 2nd stage boot...    "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
+    sleep 10
     printf "Done\n"
 fi
 
-# Reboot the FPGA
-printf "Rebooting FPGA...                                 "
-ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
-sleep 10
-printf "Done\n" 
+# If FirmwareLoader returned with errors, end script here
+if [ "$RET" != 0 ]; then
+    printf "\nAborting...\n\n"
+    exit
+fi
+
+# If 1st stage boot was not used, reboot FPGA.
+# If 1st stage boot was used, a reboot was done when returning to the second stage boot
+if [ -z $USE_FSB ]; then
+    printf "Rebooting FPGA...                                 "
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
+    sleep 10
+    printf "Done\n" 
+fi
 
 # Read the new firmware build string
 printf "New firmware build string:                        "
