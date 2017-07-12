@@ -17,7 +17,7 @@ The script will by default assume that the IP address of the CPU connected to th
 When the cpu uses a RT kernel, the script will use by default the username "laci", but you can change it with option -u|--user
 
 ## Script usage:
-
+```
 ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_user_name] [-a|--addr cpu_last_ip_octect] [-f|--fsb] [-h|--help]
   -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager
   -n|--slot         slot_number            : slot number
@@ -27,3 +27,4 @@ ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--
   -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)
   -f|--fsb                                 : use first stage boot (default to second stage boot)
   -h|--help                                : show this message
+```
