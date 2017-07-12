@@ -7,6 +7,10 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.5: 2017-07-12 J. Vasquez
+    * Capture return value from FirmwareLoader and print diagnostic info.
+    * Avoid FPGA rebooting if FirmwareLoader fails.
+
 R1.0.4: 2017-06-01 J. Vasquez
     * Change Build String size from 96 chars to 256.
     * Add a YAML definition for the 1st stage bootloader image.
