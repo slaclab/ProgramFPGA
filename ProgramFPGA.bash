@@ -258,23 +258,26 @@ else
     MCS_FILE_REMOTE=$MCS_FILE
 fi
 
-# Read crate ID from FPGA
+# Read crate ID from the shelfmanager, as a 4-digit hex number
 printf "Looking for crate ID...                           "
-CRATE_ID=$(ipmitool -I lan -H $SHELFMANAGER  -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xFD 0x02 | awk '{ print $1 + $2*256 }')
+CRATE_ID=`printf %04X  $((0x$(ipmitool -I lan -H $SHELFMANAGER  -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xFD 0x02 | awk '{ print $1 + $2*256 }')))`
 
 if [ -z $CRATE_ID ]; then
     printf "Error getting crate ID\n"
     exit
 else
-    printf "$CRATE_ID\n"
+    printf "0x$CRATE_ID\n"
 fi
 
-# Calculate FPGA IP address from carte ID and slot number
-FPGA_IP="10.0.$CRATE_ID.$(expr 100 + $SLOT)"
+# Calculate FPGA IP subnet from the crate ID
+SUBNET="10.$((0x${CRATE_ID:0:2})).$((0x${CRATE_ID:2:2}))"
+
+# Calculate FPGA IP last octect from the slot number
+FPGA_IP="$SUBNET.$(expr 100 + $SLOT)"
 printf "FPGA IP address:                                  $FPGA_IP\n"
 
-# Calculate CPU IP address connected to the FPGA, whic alwys ends in x.x.x.1 
-CPU_IP="10.0.$CRATE_ID.$CPU_OCTET"
+# Calculate CPU IP address connected to the FPGA 
+CPU_IP="$SUBNET.$CPU_OCTET"
 printf "CPU IP address:                                   $CPU_IP\n"
 
 # Check network interface name on CPU connected to the FPGA based on its IP address. Exit on error
