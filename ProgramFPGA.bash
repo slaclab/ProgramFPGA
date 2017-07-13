@@ -22,7 +22,7 @@ usage() {
     echo "usage: ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
     echo "    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager"
     echo "    -n|--slot         slot_number            : logical slot number"
-    echo "    -m|--mcs          mcs_file               : path to the mcs file"
+    echo "    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format"
     echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board"
     echo "    -u|--user         cpu_user_name          : user name for CPU using RT kernels (default: laci)"
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
