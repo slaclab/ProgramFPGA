@@ -7,6 +7,9 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.7: 2017-07-13 J. Vasquez
+    * Fix calculation of FPGA's IP subnet based on crateID as 10.x.y
+
 R1.0.6: 2017-07-12 J. Vasquez
     * Add support for MCS.GZ files
     * Change reboot IPMI command from 0xF3 to activate/deactivate commands
