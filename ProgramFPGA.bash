@@ -52,6 +52,36 @@ getFpgaVersion()
   echo $(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
 }
 
+# Set 1st stage boot
+setFirstStageBoot()
+{    printf "Setting boot address to 1st stage boot...         "
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 0 0 0 0 &> /dev/null
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF9 &> /dev/null
+    sleep 20
+    printf "Done\n"
+}
+
+# Set 2nd stage boot 
+setSecondStageBoot()
+{
+    printf "Setting boot address back to 2nd stage boot...    "
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
+    sleep 10
+    printf "Done\n"
+}
+
+# Reboot FPGA
+rebootFPGA()
+{
+    printf "Rebooting FPGA...                                 "
+    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
+    sleep 10
+    printf "Done\n"
+}
+
 # Verify inputs arguments
 while [[ $# -gt 0 ]]
 do
@@ -259,12 +289,7 @@ fi
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
     # Change bootload address and reboot
-    printf "Setting boot address to 1st stage boot...         "
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 0 0 0 0 &> /dev/null
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF9 &> /dev/null
-    sleep 20
-    printf "Done\n"
+    setFirstStageBoot
 
     # Read FSB firmware build string
     printf "1st stage boot firmware build string:             "
@@ -300,11 +325,7 @@ else
 
         # If 1st stage boot was used, return boot address to the second stage boot
         if [ $USE_FSB ]; then
-            printf "Setting boot address back to 2nd stage boot...    "
-            ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
-            ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
-            ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
-            printf "Done\n"
+            setSecondStageBoot
         fi
         exit 
     else
@@ -329,12 +350,7 @@ fi
 
 # If 1st stage boot was used, return boot address to the second stage boot
 if [ $USE_FSB ]; then
-    printf "Setting boot address back to 2nd stage boot...    "
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
-    sleep 10
-    printf "Done\n"
+    setSecondStageBoot
 fi
 
 # If FirmwareLoader returned with errors, end script here
@@ -346,10 +362,7 @@ fi
 # If 1st stage boot was not used, reboot FPGA.
 # If 1st stage boot was used, a reboot was done when returning to the second stage boot
 if [ -z $USE_FSB ]; then
-    printf "Rebooting FPGA...                                 "
-    ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF3 &> /dev/null
-    sleep 10
-    printf "Done\n" 
+    rebootFPGA
 fi
 
 # Read the new firmware build string
