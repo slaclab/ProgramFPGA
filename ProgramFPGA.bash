@@ -116,13 +116,18 @@ if [ -z "$SLOT" ]; then
     usage
 fi
 
+if [ -z $RT_USER ]; then
+    RT_USER="laci"
+fi
+
 if [ ! -f "$MCS_FILE" ]; then
     echo "MCS file not found!"
     usage
 fi
 
-if [ -z $RT_USER ]; then
-    RT_USER="laci"
+if ! ssh -x $RT_USER@$CPU [[ -f $MCS_FILE ]] ; then
+    echo "MCS file not found on remote CPU!"
+    usage
 fi
 
 if [ -z $CPU_OCTET ]; then
@@ -206,6 +211,19 @@ if [ $USE_FSB ]; then
     YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/1sb/FirmwareLoader.yaml
 else
     YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/2sb/FirmwareLoader.yaml
+fi
+
+# Checking if MCS file was given in GZ format
+printf "Verifying if MCS file is compressed...            "
+if [[ $MCS_FILE == *.gz ]]; then
+    printf "Yes, GZ file detected.\n"
+    # Extract the MCS file into the remoe host's /tmp folder
+    MCS_FILE_REMOTE=/tmp/$(basename "${MCS_FILE%.*}")
+    ssh -x $RT_USER@$CPU "zcat $MCS_FILE > $MCS_FILE_REMOTE"
+else
+    # If MCS file is not in GZ format, use the original file instead
+    printf "No, MCS file detected.\n"
+    MCS_FILE_REMOTE=$MCS_FILE
 fi
 
 # Read crate ID from FPGA
@@ -296,7 +314,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x $RT_USER@$CPU $FW_LOADER_BIN -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
+ssh -x $RT_USER@$CPU $FW_LOADER_BIN -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
 
 # Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
 RET=$?  
