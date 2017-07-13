@@ -266,7 +266,7 @@ if [ -z $CRATE_ID ]; then
     printf "Error getting crate ID\n"
     exit
 else
-    printf "$CRATE_ID\n"
+    printf "0x$CRATE_ID\n"
 fi
 
 # Calculate FPGA IP subnet from the crate ID
