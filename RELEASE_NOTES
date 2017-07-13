@@ -7,6 +7,11 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.6: 2017-07-12 J. Vasquez
+    * Add support for MCS.GZ files
+    * Change reboot IPMI command from 0xF3 to activate/deactivate commands
+      via picmg policy set
+
 R1.0.5: 2017-07-12 J. Vasquez
     * Capture return value from FirmwareLoader and print diagnostic info.
     * Avoid FPGA rebooting if FirmwareLoader fails.
