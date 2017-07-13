@@ -8,7 +8,7 @@ You just need to know:
 - the *shelfmanager* name of the crate where your carrier is installed,
 - in which *slot* number,
 - the name of the *cpu* connected to the crate, and
-- the path to your *MCS* file.
+- the path to your *MCS* file (*MCS.GZ* files are also accepted).
 
 The script will use by default the second stage boot method, but you can choose using the first stage boot method instead with option -f|--fsb.
 
@@ -18,13 +18,13 @@ When the cpu uses a RT kernel, the script will use by default the username "laci
 
 ## Script usage:
 ```
-ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_user_name] [-a|--addr cpu_last_ip_octect] [-f|--fsb] [-h|--help]
-  -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager
-  -n|--slot         slot_number            : slot number
-  -m|--mcs          mcs_file               : path to the mcs file
-  -c|--cpu          cpu_name               : name of the cpu connected to the board
-  -u|--user         cpu_user_name          : user name for CPU using RT kernels (default: laci)
-  -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)
-  -f|--fsb                                 : use first stage boot (default to second stage boot)
-  -h|--help                                : show this message
+ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]
+    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager
+    -n|--slot         slot_number            : logical slot number
+    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format
+    -c|--cpu          cpu_name               : name of the cpu connected to the board
+    -u|--user         cpu_user_name          : user name for CPU using RT kernels (default: laci)
+    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)
+    -f|--fsb                                 : use first stage boot (default to second stage boot)
+    -h|--help                                : show this message
 ```
