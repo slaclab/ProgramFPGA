@@ -340,7 +340,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x $RT_USER@$CPU $FW_LOADER_BIN -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
+ssh -x $RT_USER@$CPU $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
 
 # Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
 RET=$?  
