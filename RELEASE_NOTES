@@ -7,6 +7,9 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.8: 2017-08-30 J. Vasquez
+    * Omit the ReloadFpga feature of the FirmwareLoader.
+
 R1.0.7: 2017-07-13 J. Vasquez
     * Fix calculation of FPGA's IP subnet based on crateID as 10.x.y
 
