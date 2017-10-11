@@ -35,7 +35,7 @@ fi
 source $CONFIG_SITE
 
 if [ -z "$FIRMWARELOADER_TOP" ]; then
-  echo "The location of FirmwareLoader was note defined!"
+  echo "The location of FirmwareLoader was note defined!. Please update your $CONFIG_SITE file."
   exit
 fi
 
