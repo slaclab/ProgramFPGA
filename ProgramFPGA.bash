@@ -17,6 +17,32 @@
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
 
+###############
+# Definitions #
+###############
+
+# Site specific configuration
+CONFIG_SITE=./config.site
+
+# YAML files location
+YAML_TOP=`pwd -P`/yaml
+
+# Source site specific configurations
+if [ ! -f "$CONFIG_SITE" ]; then
+  echo "$CONFIG_SITE file not found!"
+  exit
+fi
+source $CONFIG_SITE
+
+if [ -z "$FIRMWARELOADER_TOP" ]; then
+  echo "The location of FirmwareLoader was note defined!"
+  exit
+fi
+
+########################
+# Function definitions #
+########################
+
 # Usage message
 usage() {
     echo "usage: ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
@@ -83,6 +109,10 @@ rebootFPGA()
     sleep 20
     printf "Done\n"
 }
+
+#############
+# Main body #
+#############
 
 # Verify inputs arguments
 while [[ $# -gt 0 ]]
@@ -236,13 +266,13 @@ else
 fi
 
 # Choosing the appropiate programming tool binary
-FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current/$ARCH/bin/FirmwareLoader
+FW_LOADER_BIN=$FIRMWARELOADER_TOP/$ARCH/bin/FirmwareLoader
 
 # YAML definiton used by the programming tool
 if [ $USE_FSB ]; then
-    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/1sb/FirmwareLoader.yaml
+    YAML_FILE=$YAML_TOP/1sb/FirmwareLoader.yaml
 else
-    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/2sb/FirmwareLoader.yaml
+    YAML_FILE=$YAML_TOP/2sb/FirmwareLoader.yaml
 fi
 
 # Checking if MCS file was given in GZ format
