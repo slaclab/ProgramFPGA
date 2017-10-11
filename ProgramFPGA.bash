@@ -135,7 +135,7 @@ case $key in
     shift
     ;;
     -m|--mcs)
-    MCS_FILE="$2"
+    MCS_FILE=$(readlink -e "$2")
     shift
     ;;
     -c|--cpu)
