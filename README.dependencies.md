@@ -6,4 +6,6 @@ The location of the package needs to be defined in the **config.site** file as a
 
 For example:
 
+```
 FIRMWARELOADER_TOP=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current
+```
