@@ -7,6 +7,9 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.10: 2017-10-11 J. Vasquez
+    * Fix TOP path generation, which was brokne in the R1.0.9 release.
+
 R1.0.9: 2017-10-11 J. Vasquez
     * Get absolute path of the MCS filei given by the user.
       The user can now give a relative path to the file and it will
