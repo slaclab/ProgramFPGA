@@ -21,11 +21,15 @@
 # Definitions #
 ###############
 
+# TOP directory, replacing the slac.stanford.edu synlink by slac
+# which is not always present in the linuxRT CPUs
+TOP=$(dirname -- "$(readlink -f $0)" | sed 's/slac.stanford.edu/slac/g')
+
 # Site specific configuration
-CONFIG_SITE=`pwd -P`/config.site
+CONFIG_SITE=$TOP/config.site
 
 # YAML files location
-YAML_TOP=`pwd -P`/yaml
+YAML_TOP=$TOP/yaml
 
 # Source site specific configurations
 if [ ! -f "$CONFIG_SITE" ]; then
