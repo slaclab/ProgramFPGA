@@ -116,6 +116,21 @@ rebootFPGA()
     printf "Done\n"
 }
 
+# Get FPGA's MAC address via IPMI
+getMacIpmi()
+{
+     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')	
+
+     echo $MAC
+}
+# Get FPGA's MAC address from arp table
+getMacArp()
+{
+    MAC=$(ssh -x $RT_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | awk '{print $4}')
+
+    echo $MAC
+}
+
 #############
 # Main body #
 #############
@@ -372,6 +387,24 @@ else
     else
         printf "FPGA connection OK!\n"
     fi
+fi
+
+# Check if FPGA's MAC get via IPMI and ARP match
+MAC_IPMI=$(getMacIpmi)
+MAC_ARP=$(getMacArp)
+printf "FPGA's MAC address read via IPMI:                 $MAC_IPMI\n"
+printf "FPGA's MAC address read from ARP table:           $MAC_ARP, "
+if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
+    printf "They match!\n"
+else
+    printf "They don't match\n"
+    printf "Aborting as the MAC adress checking failed. Make sure the CPU is connecte to the right shelfmanager\n"
+
+    # If 1st stage boot was used, return boot address to the second stage boot
+    if [ $USE_FSB ]; then
+        setSecondStageBoot
+    fi
+    exit
 fi
 
 # Load image into FPGA
