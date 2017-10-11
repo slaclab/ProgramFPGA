@@ -22,7 +22,7 @@
 ###############
 
 # Site specific configuration
-CONFIG_SITE=./config.site
+CONFIG_SITE=`pwd -P`/config.site
 
 # YAML files location
 YAML_TOP=`pwd -P`/yaml
