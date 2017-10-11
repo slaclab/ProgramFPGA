@@ -7,6 +7,16 @@
 #  Rev:  20-Mar-2017, Reviewer's Name    (Jesus Vasquez)
 #--------------------------------------------------------------
 
+R1.0.9: 2017-10-11 J. Vasquez
+    * Get absolute path of the MCS filei given by the user.
+      The user can now give a relative path to the file and it will
+      be found in the remote CPU correctly.
+    * Add 1s delays after the ipmitool commands.
+    * Get the FPGA's MAC address both via IPMI and from the remote CPU
+      ARP table and check they match, to avoid programming the wrong FPGA.
+    * Add a config.site file where the site specific configuration can be specify.
+      At this moment the only content of this file is the location of the FirmwareLoaader.
+
 R1.0.8: 2017-08-30 J. Vasquez
     * Omit the ReloadFpga feature of the FirmwareLoader.
 
