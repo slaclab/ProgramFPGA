@@ -16,6 +16,10 @@ The script will by default assume that the IP address of the CPU connected to th
 
 When the cpu uses a RT kernel, the script will use by default the username "laci", but you can change it with option -u|--user
 
+## Install
+
+After cloning the repository, follow the instruction in  **README.dependencies.md**
+
 ## Script usage:
 ```
 ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]

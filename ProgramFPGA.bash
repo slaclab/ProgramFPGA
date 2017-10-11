@@ -17,6 +17,32 @@
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
 
+###############
+# Definitions #
+###############
+
+# Site specific configuration
+CONFIG_SITE=./config.site
+
+# YAML files location
+YAML_TOP=`pwd -P`/yaml
+
+# Source site specific configurations
+if [ ! -f "$CONFIG_SITE" ]; then
+  echo "$CONFIG_SITE file not found!"
+  exit
+fi
+source $CONFIG_SITE
+
+if [ -z "$FIRMWARELOADER_TOP" ]; then
+  echo "The location of FirmwareLoader was note defined!. Please update your $CONFIG_SITE file."
+  exit
+fi
+
+########################
+# Function definitions #
+########################
+
 # Usage message
 usage() {
     echo "usage: ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
@@ -56,7 +82,9 @@ getFpgaVersion()
 setFirstStageBoot()
 {    printf "Setting boot address to 1st stage boot...         "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 0 0 0 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF9 &> /dev/null
     sleep 20
     printf "Done\n"
@@ -67,8 +95,11 @@ setSecondStageBoot()
 {
     printf "Setting boot address back to 2nd stage boot...    "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
     sleep 20
     printf "Done\n"
@@ -79,10 +110,30 @@ rebootFPGA()
 {
     printf "Rebooting FPGA...                                 "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
     sleep 20
     printf "Done\n"
 }
+
+# Get FPGA's MAC address via IPMI
+getMacIpmi()
+{
+     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')	
+
+     echo $MAC
+}
+# Get FPGA's MAC address from arp table
+getMacArp()
+{
+    MAC=$(ssh -x $RT_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | awk '{print $4}')
+
+    echo $MAC
+}
+
+#############
+# Main body #
+#############
 
 # Verify inputs arguments
 while [[ $# -gt 0 ]]
@@ -99,7 +150,7 @@ case $key in
     shift
     ;;
     -m|--mcs)
-    MCS_FILE="$2"
+    MCS_FILE=$(readlink -e "$2")
     shift
     ;;
     -c|--cpu)
@@ -236,13 +287,13 @@ else
 fi
 
 # Choosing the appropiate programming tool binary
-FW_LOADER_BIN=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/current/$ARCH/bin/FirmwareLoader
+FW_LOADER_BIN=$FIRMWARELOADER_TOP/$ARCH/bin/FirmwareLoader
 
 # YAML definiton used by the programming tool
 if [ $USE_FSB ]; then
-    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/1sb/FirmwareLoader.yaml
+    YAML_FILE=$YAML_TOP/1sb/FirmwareLoader.yaml
 else
-    YAML_FILE=/afs/slac/g/lcls/package/cpsw/utils/ProgramFPGA/current/yaml/2sb/FirmwareLoader.yaml
+    YAML_FILE=$YAML_TOP/2sb/FirmwareLoader.yaml
 fi
 
 # Checking if MCS file was given in GZ format
@@ -286,6 +337,10 @@ CPU_ETH=$(ssh -x $RT_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{p
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
+    printf "\n"
+    printf "Aborting as the interace connected to the FPGA was not found.\n"
+    printf "Make sure an interface is configured correctly based on the shelfmanager's crateID\n"
+    printf "\n"
     exit
 else
     printf "$CPU_ETH\n"
@@ -319,7 +374,7 @@ if [ -z $RT ]; then
             # We don't exit as we don't know if arping works...
             printf "FPGA unreachable!\n"
         else
-            printf "OK!\n"
+            printf "FPGA connection OK!\n"
         fi    
     fi
 else
@@ -336,6 +391,28 @@ else
     else
         printf "FPGA connection OK!\n"
     fi
+fi
+
+# Check if FPGA's MAC get via IPMI and ARP match
+MAC_IPMI=$(getMacIpmi)
+MAC_ARP=$(getMacArp)
+printf "FPGA's MAC address read via IPMI:                 $MAC_IPMI\n"
+printf "FPGA's MAC address read from ARP table:           $MAC_ARP, "
+if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
+    printf "They match!\n"
+else
+    printf "They don't match\n"
+
+    # If 1st stage boot was used, return boot address to the second stage boot
+    if [ $USE_FSB ]; then
+        setSecondStageBoot
+    fi
+
+    printf "\n"
+    printf "Aborting as the MAC adress checking failed.\n"
+    printf "Make sure the CPU is connecte to the right shelfmanager\n"
+    printf "\n"
+    exit
 fi
 
 # Load image into FPGA
@@ -360,7 +437,9 @@ fi
 
 # If FirmwareLoader returned with errors, end script here
 if [ "$RET" != 0 ]; then
-    printf "\nAborting...\n\n"
+    printf "\n"
+    printf "Aborting as the FirmwareLoader failed\n"
+    printf "\n"
     exit
 fi
 
