@@ -82,7 +82,9 @@ getFpgaVersion()
 setFirstStageBoot()
 {    printf "Setting boot address to 1st stage boot...         "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 0 0 0 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF9 &> /dev/null
     sleep 20
     printf "Done\n"
@@ -93,8 +95,11 @@ setSecondStageBoot()
 {
     printf "Setting boot address back to 2nd stage boot...    "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 4 0 0 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
     sleep 20
     printf "Done\n"
@@ -105,6 +110,7 @@ rebootFPGA()
 {
     printf "Rebooting FPGA...                                 "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
+    sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
     sleep 20
     printf "Done\n"
