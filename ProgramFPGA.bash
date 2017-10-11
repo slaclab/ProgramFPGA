@@ -337,6 +337,10 @@ CPU_ETH=$(ssh -x $RT_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{p
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
+    printf "\n"
+    printf "Aborting as the interace connected to the FPGA was not found.\n"
+    printf "Make sure an interface is configured correctly based on the shelfmanager's crateID\n"
+    printf "\n"
     exit
 else
     printf "$CPU_ETH\n"
@@ -370,7 +374,7 @@ if [ -z $RT ]; then
             # We don't exit as we don't know if arping works...
             printf "FPGA unreachable!\n"
         else
-            printf "OK!\n"
+            printf "FPGA connection OK!\n"
         fi    
     fi
 else
@@ -398,12 +402,16 @@ if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
     printf "They match!\n"
 else
     printf "They don't match\n"
-    printf "Aborting as the MAC adress checking failed. Make sure the CPU is connecte to the right shelfmanager\n"
 
     # If 1st stage boot was used, return boot address to the second stage boot
     if [ $USE_FSB ]; then
         setSecondStageBoot
     fi
+
+    printf "\n"
+    printf "Aborting as the MAC adress checking failed.\n"
+    printf "Make sure the CPU is connecte to the right shelfmanager\n"
+    printf "\n"
     exit
 fi
 
@@ -429,7 +437,9 @@ fi
 
 # If FirmwareLoader returned with errors, end script here
 if [ "$RET" != 0 ]; then
-    printf "\nAborting...\n\n"
+    printf "\n"
+    printf "Aborting as the FirmwareLoader failed\n"
+    printf "\n"
     exit
 fi
 
