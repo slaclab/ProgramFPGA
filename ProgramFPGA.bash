@@ -130,7 +130,7 @@ getMacIpmi()
 # Get FPGA's MAC address from arp table
 getMacArp()
 {
-    MAC=$(ssh -x $RT_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | awk '{print $4}')
+    MAC=$(ssh -x $RT_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
 
     echo $MAC
 }
