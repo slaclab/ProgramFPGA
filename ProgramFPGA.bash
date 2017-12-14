@@ -535,22 +535,25 @@ printf "\n"
 
 printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
-if [ -z $RT ]; then
-    # On non-RT linux, try ping as arping need root permissions which we don't usually have
-    printf "Connection between CPU and FPGA (using ping):     "
-    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
-        printf "FPGA unreachable!\n"
-    else
-        printf "OK!\n"
-    fi    
+printf "Connection between CPU and FPGA (using ping):     "
+# Trying first with ping
+if ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+    printf "FPGA connection OK!\n"
 else
-    # on RT linux, use arping as we do have root permission here
-    printf "Connection between CPU and FPGA (using arping):   "
-    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+    # On nor-RT linux, the test failed
+    if [ -z $RT ]; then
         printf "FPGA unreachable!\n"
     else
-        printf "OK!\n"
+        # But on linux-RT, we try with arping first
+        printf "Failed!\n"
+        printf "Connection between CPU and FPGA (using arping):   "     
+
+        if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+            printf "FPGA unreachable!\n"
+        else
+            printf "FPGA connection OK!\n"
+        fi    
     fi
-fi
+fi 
 
 printf "\nDone!\n\n"
