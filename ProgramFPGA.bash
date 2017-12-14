@@ -223,21 +223,17 @@ if [ ! -f "$MCS_FILE" ]; then
     usage
 fi
 
-if ! ssh -x $RT_USER@$CPU [[ -f $MCS_FILE ]] ; then
-    echo "MCS file not found on remote CPU!"
-    usage
-fi
-
 if [ -z $CPU_OCTET ]; then
     CPU_OCTET="1"
 fi
 
-# Programing methos to use
-printf "Programing method to use:                         "
-if [ $USE_FSB ]; then
-    printf "1st stage boot\n"
+# Check connection with cpu. Exit on error
+printf "Checking connection with CPU...                   "
+if ! ping -c 1 $CPU &> /dev/null ; then
+    printf "CPU not reachable!\n"
+    exit
 else
-    printf "2nd stage boot\n"
+    printf "Connection OK!\n"
 fi
 
 # Check connection with shelfmanager. Exit on error
@@ -247,6 +243,19 @@ if ! ping -c 1 $SHELFMANAGER &> /dev/null ; then
     exit
 else
     printf "Connection OK!\n"
+fi
+
+if ! ssh -x $RT_USER@$CPU [[ -f $MCS_FILE ]] ; then
+    echo "MCS file not found on remote CPU!"
+    usage
+fi
+
+# Programing methos to use
+printf "Programing method to use:                         "
+if [ $USE_FSB ]; then
+    printf "1st stage boot\n"
+else
+    printf "2nd stage boot\n"
 fi
 
 # Calculate IPMB address based on slot number
@@ -264,15 +273,6 @@ printf "Current FPGA Version:                             "
 VER_OLD=$(getFpgaVersion)
 for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
 printf "0x$VER_SWAP_OLD\n"
-
-# Check connection with cpu. Exit on error
-printf "Checking connection with CPU...                   "
-if ! ping -c 1 $CPU &> /dev/null ; then
-    printf "CPU not reachable!\n"
-    exit
-else
-    printf "Connection OK!\n"
-fi
 
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
