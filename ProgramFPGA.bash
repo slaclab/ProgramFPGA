@@ -138,8 +138,8 @@ getMacArp()
 # Try to arping the FPGA and get its MAC address
 getMacArping()
 {
-    if ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        MAC=$(ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
+    if ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        MAC=$(ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
         echo $MAC
     else
         echo
@@ -229,7 +229,7 @@ fi
 
 # Check connection with cpu. Exit on error
 printf "Checking connection with CPU...                   "
-if ! ping -c 1 $CPU &> /dev/null ; then
+if ! ping -c 2 $CPU &> /dev/null ; then
     printf "CPU not reachable!\n"
     exit
 else
@@ -238,7 +238,7 @@ fi
 
 # Check connection with shelfmanager. Exit on error
 printf "Checking connection with the shelfmanager...      "
-if ! ping -c 1 $SHELFMANAGER &> /dev/null ; then
+if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
     printf "Shelfmanager unreachable!\n"
     exit
 else
@@ -365,7 +365,7 @@ fi
 printf "Testing CPU and FPGA connection (with ping)...    "
 
 # Trying first with ping
-if ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+if ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
     printf "FPGA connection OK!\n"
 
     # Get the MAC address from the CPU ARP table
@@ -540,7 +540,7 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 if [ -z $RT ]; then
     # On non-RT linux, try ping as arping need root permissions which we don't usually have
     printf "Connection between CPU and FPGA (using ping):     "
-    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
         printf "FPGA unreachable!\n"
     else
         printf "OK!\n"
@@ -548,7 +548,7 @@ if [ -z $RT ]; then
 else
     # on RT linux, use arping as we do have root permission here
     printf "Connection between CPU and FPGA (using arping):   "
-    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
         printf "FPGA unreachable!\n"
     else
         printf "OK!\n"
