@@ -135,6 +135,17 @@ getMacArp()
     echo $MAC
 }
 
+# Try to arping the FPGA and get its MAC address
+getMacArping()
+{
+    if ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        MAC=$(ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
+        echo $MAC
+    else
+        echo
+    fi
+}
+
 #############
 # Main body #
 #############
@@ -350,6 +361,54 @@ else
     printf "$CPU_ETH\n"
 fi
 
+# Check connection between CPU and FPGA.
+printf "Testing CPU and FPGA connection (with ping)...    "
+
+# Trying first with ping
+if ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
+    printf "FPGA connection OK!\n"
+
+    # Get the MAC address from the CPU ARP table
+    MAC_ARP=$(getMacArp)
+else
+    # On nor-RT linux, exit in case of error
+    if [ -z $RT ]; then
+        printf "FPGA unreachable!\n"
+        exit
+    else
+        # But on linux-RT, we try with arping first.
+        printf "Failed!\n"
+        printf "Testing CPU and FPGA connection (with arping)...  "
+        
+        # In this case, we also get the MAC address from the arping command
+        # as Aarping doesn't update the ARP table
+        MAC_ARP=$(getMacArping)
+
+        if [ -z MAC_ARP ]; then
+            printf "FPGA unreachable!\n"
+            exit
+        else
+            printf "FPGA connection OK!\n"
+        fi    
+    fi
+fi    
+
+# Check if FPGA's MAC get via IPMI and ARP match
+MAC_IPMI=$(getMacIpmi)
+printf "FPGA's MAC address read via IPMI:                 $MAC_IPMI\n"
+printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
+if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
+    printf "They match!\n"
+else
+    printf "They don't match\n"
+
+    printf "\n"
+    printf "Aborting as the MAC adress checking failed.\n"
+    printf "Make sure the CPU is connecte to the correct ATCA crate\n"
+    printf "\n"
+    exit
+fi
+
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
     # Change bootload address and reboot
@@ -366,57 +425,6 @@ if [ $USE_FSB ]; then
     VER_FSB=$(getFpgaVersion)
     for c in $VER_FSB ; do VER_SWAP_FSB="$c"$VER_SWAP_FSB ; done
     printf "0x$VER_SWAP_FSB\n"
-fi
-
-# Check connection between CPU and FPGA.
-if [ -z $RT ]; then
-    if [ -z $USE_FSB ]; then
-        # On non-RT linux, try ping as arping need root permissions which we don't usually have
-        # But try it only when using 2nd stage boot, as ping is not implemented on 1st stage boot
-        printf "Testing CPU and FPGA connection (with ping)...    "
-        if ! ssh -x $RT_USER@$CPU "/bin/ping -c 1 $FPGA_IP &> /dev/null" ; then
-            # We don't exit as we don't know if arping works...
-            printf "FPGA unreachable!\n"
-        else
-            printf "FPGA connection OK!\n"
-        fi    
-    fi
-else
-    printf "Testing CPU and FPGA connection (with arping)...  "
-    if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        # In this case we do exit in case of an error
-        printf "FPGA unreachable!\n"
-
-        # If 1st stage boot was used, return boot address to the second stage boot
-        if [ $USE_FSB ]; then
-            setSecondStageBoot
-        fi
-        exit 
-    else
-        printf "FPGA connection OK!\n"
-    fi
-fi
-
-# Check if FPGA's MAC get via IPMI and ARP match
-MAC_IPMI=$(getMacIpmi)
-MAC_ARP=$(getMacArp)
-printf "FPGA's MAC address read via IPMI:                 $MAC_IPMI\n"
-printf "FPGA's MAC address read from ARP table:           $MAC_ARP, "
-if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
-    printf "They match!\n"
-else
-    printf "They don't match\n"
-
-    # If 1st stage boot was used, return boot address to the second stage boot
-    if [ $USE_FSB ]; then
-        setSecondStageBoot
-    fi
-
-    printf "\n"
-    printf "Aborting as the MAC adress checking failed.\n"
-    printf "Make sure the CPU is connecte to the right shelfmanager\n"
-    printf "\n"
-    exit
 fi
 
 # Load image into FPGA
