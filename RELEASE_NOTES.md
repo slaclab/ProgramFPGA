@@ -1,5 +1,11 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.12: 2017-12-14 J. Vasquez
+- Fix bug error when FPGA MAC address is not in the CPU ARP table.
+- Test CPU connection earlier.
+- Try to (ar)ping two times for better reliability results.
+- Some code cleanup.
+
 ## R1.0.11: 2017-11-01 J. Vasquez
 - Ignore empty MAC addresses from ARP table
 
