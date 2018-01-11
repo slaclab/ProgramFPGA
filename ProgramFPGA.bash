@@ -111,7 +111,7 @@ rebootFPGA()
     RETRY_MAX=10
     RETRAY_DELAY=10
 
-    printf "Sending reboot command to  FPGA...                "
+    printf "Sending reboot command to FPGA...                 "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
     sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
