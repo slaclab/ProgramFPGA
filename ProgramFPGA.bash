@@ -112,12 +112,33 @@ setSecondStageBoot()
 # Reboot FPGA
 rebootFPGA()
 {
-    printf "Rebooting FPGA...                                 "
+    RETRY_MAX=10
+    RETRAY_DELAY=10
+
+    printf "Sending reboot command to  FPGA...                "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
     sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 1 0 &> /dev/null
-    sleep 20
     printf "Done\n"
+
+    printf "Waiting for FPGA to boot...                       "
+    # Wait until FPGA boots
+    for i in $(seq 1 $RETRY_MAX); do
+        sleep $RETRAY_DELAY
+        CODE=$(ipmitool -I lan -H shm-li00-sp01 -t 0x84 -b 0 -A NONE raw 0x34 0xF4 2> /dev/null | awk '{print $1}')
+        RET=$?
+        if [ "$RET" -eq 0 ] && [ $CODE -eq 3 ]; then
+            DONE=1
+            break
+        fi
+    done
+    
+    if [ -z $DONE ]; then
+        printf "FPGA didn't boot after $(($RETRY_MAX*$RETRAY_DELAY)) seconds. Aborting...\n\n"
+        exit
+    else
+        printf "FPGA booted after $((i*$RETRAY_DELAY)) seconds\n"
+    fi
 }
 
 # Get FPGA's MAC address via IPMI
