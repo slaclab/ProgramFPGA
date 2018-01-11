@@ -1,5 +1,9 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.13: 2018-01-10 J. Vasquez
+- Verify if FPGA booted correclty after sending reboot command.
+- Fix bug when using FSB metod and it didn't go back to SSB.
+
 ## R1.0.12: 2017-12-14 J. Vasquez
 - Fix bug error when FPGA MAC address is not in the CPU ARP table.
 - Test CPU connection earlier.
