@@ -1,5 +1,8 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.14: 2018-01-29 J. Vasquez
+- Fix bug: hardcoded SHM name and IPMB address.
+
 ## R1.0.13: 2018-01-10 J. Vasquez
 - Verify if FPGA booted correclty after sending reboot command.
 - Fix bug when using FSB metod and it didn't go back to SSB.
