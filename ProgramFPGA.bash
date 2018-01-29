@@ -472,7 +472,7 @@ if [ "$RET" -ne 0 ]; then
     exit
 fi
 
-# If 1st stage boot was not used, reboot FPGA.
+# If 2st stage boot was not used, reboot FPGA.
 # If 1st stage boot was used, a reboot was done when returning to the second stage boot
 if [ -z $USE_FSB ]; then
     rebootFPGA
