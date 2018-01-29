@@ -121,7 +121,7 @@ rebootFPGA()
     # Wait until FPGA boots
     for i in $(seq 1 $RETRY_MAX); do
         sleep $RETRAY_DELAY
-        BSI_STATE=$(ipmitool -I lan -H shm-li00-sp01 -t 0x84 -b 0 -A NONE raw 0x34 0xF4 2> /dev/null | awk '{print $1}')
+        BSI_STATE=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF4 2> /dev/null | awk '{print $1}')
         EXIT_CODE=$?
         if [ "$EXIT_CODE" -eq 0 ] && [ $BSI_STATE -eq 3 ]; then
             DONE=1
