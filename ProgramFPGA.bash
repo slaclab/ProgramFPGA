@@ -322,12 +322,17 @@ fi
 printf "Verifying if MCS file is compressed...            "
 if [[ $MCS_FILE_NAME == *.gz ]]; then
     printf "Yes, GZ file detected.\n"
+
     # Extract the MCS file into the remoe host's /tmp folder
     MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+
+    printf "Extracting GZ file into CPU disk...               "
     $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
 
-    if [ "$?" -ne 0 ]; then
-        printf "ERROR ungziping MCS file. Aborting...\n\n"
+    if [ "$?" -eq 0 ]; then
+        printf "Done!\n"
+    else
+        printf "ERROR extracting MCS file. Aborting...\n\n"
         exit
     fi
 
