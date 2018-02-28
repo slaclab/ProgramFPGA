@@ -182,7 +182,7 @@ case $key in
     shift
     ;;
     -m|--mcs)
-    MCS_FILE=$(readlink -e "$2")
+    MCS_FILE_NAME=$(readlink -e "$2")
     shift
     ;;
     -c|--cpu)
@@ -230,7 +230,7 @@ if [ -z $CPU_USER ]; then
     CPU_USER="laci"
 fi
 
-if [ ! -f "$MCS_FILE" ]; then
+if [ ! -f "$MCS_FILE_NAME" ]; then
     echo "MCS file not found!"
     usage
 fi
@@ -270,7 +270,7 @@ else
     printf "Connection OK!\n"
 fi
 
-if ! $CPU_EXEC [ -f $MCS_FILE ] ; then
+if ! $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
     echo "MCS file not found on remote CPU!"
     usage
 fi
@@ -338,11 +338,11 @@ fi
 
 # Checking if MCS file was given in GZ format
 printf "Verifying if MCS file is compressed...            "
-if [[ $MCS_FILE == *.gz ]]; then
+if [[ $MCS_FILE_NAME == *.gz ]]; then
     printf "Yes, GZ file detected.\n"
     # Extract the MCS file into the remoe host's /tmp folder
-    MCS_FILE_REMOTE=/tmp/$(basename "${MCS_FILE%.*}")
-    $CPU_EXEC "zcat $MCS_FILE > $MCS_FILE_REMOTE"
+    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
 
     if [ "$?" -ne 0 ]; then
         printf "ERROR ungziping MCS file. Aborting...\n\n"
@@ -352,7 +352,7 @@ if [[ $MCS_FILE == *.gz ]]; then
 else
     # If MCS file is not in GZ format, use the original file instead
     printf "No, MCS file detected.\n"
-    MCS_FILE_REMOTE=$MCS_FILE
+    MCS_FILE=$MCS_FILE_NAME
 fi
 
 # Read crate ID from the shelfmanager, as a 4-digit hex number
@@ -460,7 +460,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-$CPU_EXEC $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
+$CPU_EXEC $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
 
 # Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
 RET=$?
@@ -540,7 +540,7 @@ else
 fi
 printf "\n"
 
-printf "MCS file:                                         $MCS_FILE\n"
+printf "MCS file:                                         $MCS_FILE_NAME\n"
 
 printf "Programming method used:                          "
 if [ $USE_FSB ]; then
