@@ -148,6 +148,9 @@ getMacIpmi()
 {
     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
 
+    # Verify IPMI errors
+    if [ "$?" -ne 0 ]; then return 1; fi
+
     echo $MAC
 }
 
@@ -472,7 +475,7 @@ fi
 
 for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
 printf "0x$VER_SWAP_OLD\n"
-exit
+
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
     # Change bootload address and reboot
