@@ -146,12 +146,12 @@ rebootFPGA()
 # Get FPGA's MAC address via IPMI
 getMacIpmi()
 {
-    MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
+    MAC_STR=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 2> /dev/null)
 
     # Verify IPMI errors
     if [ "$?" -ne 0 ]; then return 1; fi
 
-    echo $MAC
+    echo $(echo $MAC_STR | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
 }
 
 # Get FPGA's MAC address from arp table
@@ -409,8 +409,17 @@ else
 fi
 
 # Check if FPGA's MAC get via IPMI and ARP match
+printf "Reading FPGA's MAC address via IPMI...            "
+
 MAC_IPMI=$(getMacIpmi)
-printf "FPGA's MAC address read via IPMI:                 $MAC_IPMI\n"
+
+# Verify if there were IPMI error
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the MAC address version via IPMI. Aborting...\n"
+    exit
+fi
+
+printf "$MAC_IPMI\n"
 printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
 if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
     printf "They match!\n"
