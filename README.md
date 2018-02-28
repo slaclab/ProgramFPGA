@@ -5,10 +5,10 @@
 The propose of this bash script is to automatize the procedure of loading a new image into your FPGA.
 
 You just need to know:
-- the *shelfmanager* name of the crate where your carrier is installed,
-- in which *slot* number,
-- the name of the *cpu* connected to the crate, and
-- the path to your *MCS* file (*MCS.GZ* files are also accepted).
+- the **shelfmanager** name of the crate where your carrier is installed,
+- in which **slot** number,
+- the name of the **cpu** connected to the crate, and
+- the path to your **MCS** file (**MCS.GZ** files are also accepted).
 
 The script will use by default the second stage boot method, but you can choose using the first stage boot method instead with option -f|--fsb.
 
