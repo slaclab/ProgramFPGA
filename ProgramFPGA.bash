@@ -69,8 +69,12 @@ getBuildString()
     ADDR_STEP=0x10
     BS_LEN=0x100
     for i in $( seq 1 $((BS_LEN/ADDR_STEP)) ); do
-      BS=$BS$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 $((ADDR/0x100)) $((ADDR%0x100)) $ADDR_STEP)
-      ADDR=$((ADDR+ADDR_STEP))
+        BS=$BS$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 $((ADDR/0x100)) $((ADDR%0x100)) $ADDR_STEP 2> /dev/null)
+
+        # Verify IPMI errors
+        if [ "$?" -ne 0 ]; then return 1; fi
+
+        ADDR=$((ADDR+ADDR_STEP))
     done
 
     echo $BS
@@ -469,8 +473,15 @@ fi
 # Current firmware build string from FPGA
 printf "Current firmware build string:                    "
 BS_OLD=$(getBuildString)
-for c in $BS_OLD ; do printf "\x$c" ; done
-printf "\n"
+
+# Verify if there were IPMI error
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the build string via IPMI. Aborting...\n"
+    exit
+else
+    for c in $BS_OLD ; do printf "\x$c" ; done
+    printf "\n"
+fi
 
 # Current firmware version from FPGA
 printf "Current FPGA Version:                             "
@@ -480,10 +491,10 @@ VER_OLD=$(getFpgaVersion)
 if [ "$?" -ne 0 ]; then
     printf "Couldn't read the FPGA version via IPMI. Aborting...\n"
     exit
+else
+    for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
+    printf "0x$VER_SWAP_OLD\n"
 fi
-
-for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
-printf "0x$VER_SWAP_OLD\n"
 
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
@@ -493,8 +504,16 @@ if [ $USE_FSB ]; then
     # Read FSB firmware build string
     printf "1st stage boot firmware build string:             "
     BS_FSB=$(getBuildString)
-    for c in $BS_FSB ; do printf "\x$c" ; done
-    printf "\n"
+
+    # Verify if there were IPMI error
+    if [ "$?" -ne 0 ]; then
+        printf "Couldn't read the FPGA version via IPMI. Aborting...\n"
+        setSecondStageBoot
+        exit
+    else
+        for c in $BS_FSB ; do printf "\x$c" ; done
+        printf "\n"
+    fi
 
     # Read FSB firmware version
     printf "1st stage boot FPGA Version:                      "
@@ -540,14 +559,25 @@ fi
 # Read the new firmware build string
 printf "New firmware build string:                        "
 BS_NEW=$(getBuildString)
-for c in $BS_NEW ; do printf "\x$c" ; done
-printf "\n"
+
+# Verify if there were IPMI error
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the build string version via IPMI.\n"
+else
+    for c in $BS_NEW ; do printf "\x$c" ; done
+    printf "\n"
+fi
 
 # Read the new firmware version
 printf "New FPGA Version:                                 "
 VER_NEW=$(getFpgaVersion)
-for c in $VER_NEW ; do VER_SWAP_NEW="$c"$VER_SWAP_NEW ; done
-printf "0x$VER_SWAP_NEW\n"
+# Verify if there were IPMI error
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the FPGA version via IPMI.\n"
+else
+    for c in $VER_NEW ; do VER_SWAP_NEW="$c"$VER_SWAP_NEW ; done
+    printf "0x$VER_SWAP_NEW\n"
+fi
 
 # Print summary
 printf "\n"
