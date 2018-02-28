@@ -145,6 +145,7 @@ getMacIpmi()
 
     echo $MAC
 }
+
 # Get FPGA's MAC address from arp table
 getMacArp()
 {
