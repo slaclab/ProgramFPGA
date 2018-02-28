@@ -53,7 +53,7 @@ usage() {
     echo "    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager"
     echo "    -n|--slot         slot_number            : logical slot number"
     echo "    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format"
-    echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board"
+    echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board (default: localhost)"
     echo "    -u|--user         cpu_user_name          : username for the CPU (default: laci)"
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
     echo "    -f|--fsb                                 : use first stage boot (default to second stage boot)"
@@ -147,7 +147,7 @@ getMacIpmi()
 # Get FPGA's MAC address from arp table
 getMacArp()
 {
-    MAC=$(ssh -x $CPU_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
+    MAC=$($CPU_EXEC cat /proc/net/arp | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
 
     echo $MAC
 }
@@ -155,8 +155,8 @@ getMacArp()
 # Try to arping the FPGA and get its MAC address
 getMacArping()
 {
-    if ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        MAC=$(ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
+    if $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        MAC=$($CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
         echo $MAC
     else
         echo
@@ -186,7 +186,7 @@ case $key in
     shift
     ;;
     -c|--cpu)
-    CPU="$2"
+    CPU_NAME="$2"
     shift
     ;;
     -u|--user)
@@ -221,11 +221,6 @@ if [ -z "$SHELFMANAGER" ]; then
     usage
 fi
 
-if [ -z "$CPU" ]; then
-    echo "CPU name not defined!"
-    usage
-fi
-
 if [ -z "$SLOT" ]; then
     echo "Slot number not defined!"
     usage
@@ -244,13 +239,26 @@ if [ -z $CPU_OCTET ]; then
     CPU_OCTET="1"
 fi
 
-# Check connection with cpu. Exit on error
-printf "Checking connection with CPU...                   "
-if ! ping -c 2 $CPU &> /dev/null ; then
-    printf "CPU not reachable!\n"
-    exit
+if [ -z "$CPU_NAME" ]; then
+    # Set the CPU_NAME variable to localhost.
+    CPU_NAME=$(hostname)
+    printf "Using local CPU: $CPU_NAME\n"
+
+    # Is the CPU is local, execute the commands directly.
+    CPU_EXEC="eval"
 else
-    printf "Connection OK!\n"
+    # Check connection with cpu. Exit on error
+    printf "Using remote CPU: $CPU_NAME\n"
+    printf "Checking connection with remote CPU...            "
+    if ! ping -c 2 $CPU_NAME &> /dev/null ; then
+        printf "CPU not reachable!\n"
+        exit
+    else
+        printf "Connection OK!\n"
+    fi
+
+    # If the CPU is remote, execute the commands via SSH
+    CPU_EXEC="ssh -x $CPU_USER@$CPU_NAME"
 fi
 
 # Check connection with shelfmanager. Exit on error
@@ -262,7 +270,7 @@ else
     printf "Connection OK!\n"
 fi
 
-if ! ssh -x $CPU_USER@$CPU [[ -f $MCS_FILE ]] ; then
+if ! $CPU_EXEC [ -f $MCS_FILE ] ; then
     echo "MCS file not found on remote CPU!"
     usage
 fi
@@ -293,7 +301,7 @@ printf "0x$VER_SWAP_OLD\n"
 
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
-RT=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep rt)
+RT=$($CPU_EXEC /bin/uname -r | grep rt)
 if [ -z $RT ]; then
 	printf "non-RT kernel\n"
 	ARCH=rhel6-x86_64
@@ -302,12 +310,12 @@ else
 
     # Check buildroot version
     printf "Looking for Buildroot version...                  "
-    BR2015=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep 3.18.11)
+    BR2015=$($CPU_EXEC /bin/uname -r | grep 3.18.11)
     if [ $BR2015 ]; then
         printf "buildroot-2015.02-x86_64\n"
     	ARCH=buildroot-2015.02-x86_64
     else
-        BR2016=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep 4.8.11)
+        BR2016=$($CPU_EXEC /bin/uname -r | grep 4.8.11)
         if [ $BR2016 ]; then
             printf "buildroot-2016.11.1\n"
             ARCH=buildroot-2016.11.1-x86_64
@@ -334,7 +342,7 @@ if [[ $MCS_FILE == *.gz ]]; then
     printf "Yes, GZ file detected.\n"
     # Extract the MCS file into the remoe host's /tmp folder
     MCS_FILE_REMOTE=/tmp/$(basename "${MCS_FILE%.*}")
-    ssh -x $CPU_USER@$CPU "zcat $MCS_FILE > $MCS_FILE_REMOTE"
+    $CPU_EXEC "zcat $MCS_FILE > $MCS_FILE_REMOTE"
 else
     # If MCS file is not in GZ format, use the original file instead
     printf "No, MCS file detected.\n"
@@ -365,7 +373,7 @@ printf "CPU IP address:                                   $CPU_IP\n"
 
 # Check network interface name on CPU connected to the FPGA based on its IP address. Exit on error
 printf "Looking interface connected to the FPGA...        "
-CPU_ETH=$(ssh -x $CPU_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
+CPU_ETH=$($CPU_EXEC /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
@@ -382,7 +390,7 @@ fi
 printf "Testing CPU and FPGA connection (with ping)...    "
 
 # Trying first with ping
-if ssh -x $CPU_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if $($CPU_EXEC /bin/ping -c 2 $FPGA_IP &> /dev/null) ; then
     printf "FPGA connection OK!\n"
 
     # Get the MAC address from the CPU ARP table
@@ -446,7 +454,7 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x $CPU_USER@$CPU $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
+$CPU_EXEC $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
 
 # Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
 RET=$?
@@ -512,7 +520,7 @@ printf "IPMB address:                                     0x%x\n" $IPMB
 
 printf "FPGA IP address:                                  $FPGA_IP\n"
 
-printf "CPU name:                                         $CPU\n"
+printf "CPU name:                                         $CPU_NAME\n"
 
 printf "CPU interface name (to FPGA):                     $CPU_ETH\n"
 
@@ -556,7 +564,7 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
 printf "Connection between CPU and FPGA (using ping):     "
 # Trying first with ping
-if ssh -x $CPU_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if $CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
     printf "FPGA connection OK!\n"
 else
     # On nor-RT linux, the test failed
@@ -567,7 +575,7 @@ else
         printf "Failed!\n"
         printf "Connection between CPU and FPGA (using arping):   "
 
-        if ! ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        if ! $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
             printf "FPGA unreachable!\n"
         else
             printf "FPGA connection OK!\n"
