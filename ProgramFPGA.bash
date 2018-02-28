@@ -226,19 +226,21 @@ if [ -z "$SLOT" ]; then
     usage
 fi
 
-if [ -z $CPU_USER ]; then
-    CPU_USER="laci"
-fi
-
 if [ ! -f "$MCS_FILE_NAME" ]; then
     echo "MCS file not found!"
     usage
+fi
+
+# Verify optional parameters
+if [ -z $CPU_USER ]; then
+    CPU_USER="laci"
 fi
 
 if [ -z $CPU_OCTET ]; then
     CPU_OCTET="1"
 fi
 
+# Check if the CPU to be used is local or remote
 if [ -z "$CPU_NAME" ]; then
     # Set the CPU_NAME variable to localhost.
     CPU_NAME=$(hostname)
