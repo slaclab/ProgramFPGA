@@ -79,7 +79,12 @@ getBuildString()
 # Get FPGA Version
 getFpgaVersion()
 {
-    echo $(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
+    FPGA_VER=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04 2> /dev/null)
+
+    # Verify IPMI errors
+    if [ "$?" -ne 0 ]; then return 1; fi
+
+    echo $FPGA_VER
 }
 
 # Set 1st stage boot
@@ -458,9 +463,16 @@ printf "\n"
 # Current firmware version from FPGA
 printf "Current FPGA Version:                             "
 VER_OLD=$(getFpgaVersion)
+
+# Verify if there were IPMI error
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the FPGA version via IPMI. Aborting...\n"
+    exit
+fi
+
 for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
 printf "0x$VER_SWAP_OLD\n"
-
+exit
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
     # Change bootload address and reboot
