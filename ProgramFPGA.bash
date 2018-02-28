@@ -343,6 +343,12 @@ if [[ $MCS_FILE == *.gz ]]; then
     # Extract the MCS file into the remoe host's /tmp folder
     MCS_FILE_REMOTE=/tmp/$(basename "${MCS_FILE%.*}")
     $CPU_EXEC "zcat $MCS_FILE > $MCS_FILE_REMOTE"
+
+    if [ "$?" -ne 0 ]; then
+        printf "ERROR ungziping MCS file. Aborting...\n\n"
+        exit
+    fi
+
 else
     # If MCS file is not in GZ format, use the original file instead
     printf "No, MCS file detected.\n"
