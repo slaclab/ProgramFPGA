@@ -469,8 +469,6 @@ if [ $USE_FSB ]; then
     printf "0x$VER_SWAP_FSB\n"
 fi
 
-exit
-
 # Load image into FPGA
 printf "Programming the FPGA...\n"
 $CPU_EXEC $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
