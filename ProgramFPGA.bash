@@ -6,14 +6,14 @@
 # Created    : 2016-11-14
 #-----------------------------------------------------------------------------
 # Description:
-# Bash script to program the HPS FPGA image 
+# Bash script to program the HPS FPGA image
 #-----------------------------------------------------------------------------
-# This file is part of the ProgramFPGA software platform. It is subject to 
-# the license terms in the LICENSE.txt file found in the top-level directory 
-# of this distribution and at: 
-#    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
-# No part of the rogue software platform, including this file, may be 
-# copied, modified, propagated, or distributed except according to the terms 
+# This file is part of the ProgramFPGA software platform. It is subject to
+# the license terms in the LICENSE.txt file found in the top-level directory
+# of this distribution and at:
+#    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+# No part of the rogue software platform, including this file, may be
+# copied, modified, propagated, or distributed except according to the terms
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ usage() {
     echo "    -n|--slot         slot_number            : logical slot number"
     echo "    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format"
     echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board"
-    echo "    -u|--user         cpu_user_name          : user name for CPU using RT kernels (default: laci)"
+    echo "    -u|--user         cpu_user_name          : username for the CPU (default: laci)"
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
     echo "    -f|--fsb                                 : use first stage boot (default to second stage boot)"
     echo "    -h|--help                                : show this message"
@@ -73,7 +73,7 @@ getBuildString()
       ADDR=$((ADDR+ADDR_STEP))
     done
 
-    echo $BS 
+    echo $BS
 }
 
 # Get FPGA Version
@@ -93,7 +93,7 @@ setFirstStageBoot()
     rebootFPGA
 }
 
-# Set 2nd stage boot 
+# Set 2nd stage boot
 setSecondStageBoot()
 {
     printf "Setting boot address back to 2nd stage boot...    "
@@ -128,7 +128,7 @@ rebootFPGA()
             break
         fi
     done
-    
+
     if [ -z $DONE ]; then
         printf "FPGA didn't boot after $(($RETRY_MAX*$RETRAY_DELAY)) seconds. Aborting...\n\n"
         exit
@@ -140,14 +140,14 @@ rebootFPGA()
 # Get FPGA's MAC address via IPMI
 getMacIpmi()
 {
-     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')	
+     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
 
      echo $MAC
 }
 # Get FPGA's MAC address from arp table
 getMacArp()
 {
-    MAC=$(ssh -x $RT_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
+    MAC=$(ssh -x $CPU_USER@$CPU cat /proc/net/arp | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
 
     echo $MAC
 }
@@ -155,8 +155,8 @@ getMacArp()
 # Try to arping the FPGA and get its MAC address
 getMacArping()
 {
-    if ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        MAC=$(ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
+    if ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        MAC=$(ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
         echo $MAC
     else
         echo
@@ -190,7 +190,7 @@ case $key in
     shift
     ;;
     -u|--user)
-    RT_USER="$2"
+    CPU_USER="$2"
     shift
     ;;
     -a|--addr)
@@ -231,8 +231,8 @@ if [ -z "$SLOT" ]; then
     usage
 fi
 
-if [ -z $RT_USER ]; then
-    RT_USER="laci"
+if [ -z $CPU_USER ]; then
+    CPU_USER="laci"
 fi
 
 if [ ! -f "$MCS_FILE" ]; then
@@ -262,7 +262,7 @@ else
     printf "Connection OK!\n"
 fi
 
-if ! ssh -x $RT_USER@$CPU [[ -f $MCS_FILE ]] ; then
+if ! ssh -x $CPU_USER@$CPU [[ -f $MCS_FILE ]] ; then
     echo "MCS file not found on remote CPU!"
     usage
 fi
@@ -293,7 +293,7 @@ printf "0x$VER_SWAP_OLD\n"
 
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
-RT=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep rt)
+RT=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep rt)
 if [ -z $RT ]; then
 	printf "non-RT kernel\n"
 	ARCH=rhel6-x86_64
@@ -302,12 +302,12 @@ else
 
     # Check buildroot version
     printf "Looking for Buildroot version...                  "
-    BR2015=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep 3.18.11)
+    BR2015=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep 3.18.11)
     if [ $BR2015 ]; then
         printf "buildroot-2015.02-x86_64\n"
     	ARCH=buildroot-2015.02-x86_64
     else
-        BR2016=$(ssh -x $RT_USER@$CPU /bin/uname -r | grep 4.8.11)
+        BR2016=$(ssh -x $CPU_USER@$CPU /bin/uname -r | grep 4.8.11)
         if [ $BR2016 ]; then
             printf "buildroot-2016.11.1\n"
             ARCH=buildroot-2016.11.1-x86_64
@@ -334,7 +334,7 @@ if [[ $MCS_FILE == *.gz ]]; then
     printf "Yes, GZ file detected.\n"
     # Extract the MCS file into the remoe host's /tmp folder
     MCS_FILE_REMOTE=/tmp/$(basename "${MCS_FILE%.*}")
-    ssh -x $RT_USER@$CPU "zcat $MCS_FILE > $MCS_FILE_REMOTE"
+    ssh -x $CPU_USER@$CPU "zcat $MCS_FILE > $MCS_FILE_REMOTE"
 else
     # If MCS file is not in GZ format, use the original file instead
     printf "No, MCS file detected.\n"
@@ -359,13 +359,13 @@ SUBNET="10.$((0x${CRATE_ID:0:2})).$((0x${CRATE_ID:2:2}))"
 FPGA_IP="$SUBNET.$(expr 100 + $SLOT)"
 printf "FPGA IP address:                                  $FPGA_IP\n"
 
-# Calculate CPU IP address connected to the FPGA 
+# Calculate CPU IP address connected to the FPGA
 CPU_IP="$SUBNET.$CPU_OCTET"
 printf "CPU IP address:                                   $CPU_IP\n"
 
 # Check network interface name on CPU connected to the FPGA based on its IP address. Exit on error
 printf "Looking interface connected to the FPGA...        "
-CPU_ETH=$(ssh -x $RT_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
+CPU_ETH=$(ssh -x $CPU_USER@$CPU /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
@@ -382,7 +382,7 @@ fi
 printf "Testing CPU and FPGA connection (with ping)...    "
 
 # Trying first with ping
-if ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if ssh -x $CPU_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
     printf "FPGA connection OK!\n"
 
     # Get the MAC address from the CPU ARP table
@@ -396,7 +396,7 @@ else
         # But on linux-RT, we try with arping first.
         printf "Failed!\n"
         printf "Testing CPU and FPGA connection (with arping)...  "
-        
+
         # In this case, we also get the MAC address from the arping command
         # as Aarping doesn't update the ARP table
         MAC_ARP=$(getMacArping)
@@ -406,9 +406,9 @@ else
             exit
         else
             printf "FPGA connection OK!\n"
-        fi    
+        fi
     fi
-fi    
+fi
 
 # Check if FPGA's MAC get via IPMI and ARP match
 MAC_IPMI=$(getMacIpmi)
@@ -436,7 +436,7 @@ if [ $USE_FSB ]; then
     BS_FSB=$(getBuildString)
     for c in $BS_FSB ; do printf "\x$c" ; done
     printf "\n"
-    
+
     # Read FSB firmware version
     printf "1st stage boot FPGA Version:                      "
     VER_FSB=$(getFpgaVersion)
@@ -446,10 +446,10 @@ fi
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
-ssh -x $RT_USER@$CPU $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
+ssh -x $CPU_USER@$CPU $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE_REMOTE
 
 # Catch the return value from the FirmwareLoader application (0: Normal, 1: Error)
-RET=$?  
+RET=$?
 
 # Show result of the firmaware loading proceccess
 printf "\n"
@@ -518,10 +518,10 @@ printf "CPU interface name (to FPGA):                     $CPU_ETH\n"
 
 printf "CPU IP address (to FPGA):                         $CPU_IP\n"
 
-printf "CPU kernel type:                                  " 
-if [ -z $RT ] ; then 
+printf "CPU kernel type:                                  "
+if [ -z $RT ] ; then
     printf "non-RT"
-else 
+else
     printf "RT"
 fi
 printf "\n"
@@ -544,7 +544,7 @@ if [ $USE_FSB ]; then
     printf "1st stage boot firmware build string:             "
     for c in $BS_FSB ; do printf "\x$c" ; done
     printf "\n"
-    
+
     printf "1st stage boot FPGA Version:                      0x$VER_SWAP_FSB\n"
 fi
 
@@ -556,7 +556,7 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
 printf "Connection between CPU and FPGA (using ping):     "
 # Trying first with ping
-if ssh -x $RT_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if ssh -x $CPU_USER@$CPU "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
     printf "FPGA connection OK!\n"
 else
     # On nor-RT linux, the test failed
@@ -565,14 +565,14 @@ else
     else
         # But on linux-RT, we try with arping first
         printf "Failed!\n"
-        printf "Connection between CPU and FPGA (using arping):   "     
+        printf "Connection between CPU and FPGA (using arping):   "
 
-        if ! ssh -x $RT_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        if ! ssh -x $CPU_USER@$CPU "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
             printf "FPGA unreachable!\n"
         else
             printf "FPGA connection OK!\n"
-        fi    
+        fi
     fi
-fi 
+fi
 
 printf "\nDone!\n\n"
