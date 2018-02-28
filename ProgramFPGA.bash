@@ -54,7 +54,7 @@ usage() {
     echo "    -n|--slot         slot_number            : logical slot number"
     echo "    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format"
     echo "    -c|--cpu          cpu_name               : name of the cpu connected to the board (default: localhost)"
-    echo "    -u|--user         cpu_user_name          : username for the CPU (default: laci)"
+    echo "    -u|--user         cpu_user_name          : username for the CPU (default: laci). Omit if localhost is used."
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
     echo "    -f|--fsb                                 : use first stage boot (default to second stage boot)"
     echo "    -h|--help                                : show this message"
