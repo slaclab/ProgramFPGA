@@ -49,7 +49,7 @@ fi
 
 # Usage message
 usage() {
-    echo "usage: ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file -c|--cpu cpu_name [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
+    echo "usage: ProgramFPGA.bash -s|--shelfmanager shelfmanager_name -n|--slot slot_number -m|--mcs mcs_file [-c|--cpu cpu_name] [-u|--user cpu_ser_name] [-a|--addr cpu_last_ip_addr_octet] [-f|--fsb] [-h|--help]"
     echo "    -s|--shelfmanager shelfmaneger_name      : name of the crate's shelfmanager"
     echo "    -n|--slot         slot_number            : logical slot number"
     echo "    -m|--mcs          mcs_file               : path to the mcs file. Can be given in GZ format"
