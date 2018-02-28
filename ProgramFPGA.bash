@@ -311,39 +311,6 @@ else
     printf "Connection OK!\n"
 fi
 
-# Check if the MCS is reachable on the CPU
-printf "Check if the MCS is reachable in the CPU...       "
-if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    printf "File was found on CPU!\n"
-else
-    printf "File was not found on CPU!\n"
-    usage
-fi
-
-# Checking if MCS file was given in GZ format
-printf "Verifying if MCS file is compressed...            "
-if [[ $MCS_FILE_NAME == *.gz ]]; then
-    printf "Yes, GZ file detected.\n"
-
-    # Extract the MCS file into the remoe host's /tmp folder
-    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
-
-    printf "Extracting GZ file into CPU disk...               "
-    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
-
-    if [ "$?" -eq 0 ]; then
-        printf "Done!\n"
-    else
-        printf "ERROR extracting MCS file. Aborting...\n\n"
-        exit
-    fi
-
-else
-    # If MCS file is not in GZ format, use the original file instead
-    printf "No, MCS file detected.\n"
-    MCS_FILE=$MCS_FILE_NAME
-fi
-
 # Programing methos to use
 printf "Programing method to use:                         "
 if [ $USE_FSB ]; then
@@ -358,7 +325,15 @@ printf "IPMB address:                                     0x%X\n" $IPMB
 
 # Read crate ID from the shelfmanager, as a 4-digit hex number
 printf "Looking for crate ID...                           "
-CRATE_ID=`printf %04X  $((0x$(ipmitool -I lan -H $SHELFMANAGER  -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xFD 0x02 | awk '{ print $1 + $2*256 }')))`
+
+CRATE_ID_STR=$(ipmitool -I lan -H $SHELFMANAGER  -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xFD 0x02 2> /dev/null)
+
+if [ "$?" -ne 0 ]; then
+    printf "Couldn't read the crate ID via IPMI. Aborting...\n"
+    exit
+fi
+
+CRATE_ID=`printf %04X  $((0x$(echo $CRATE_ID_STR | awk '{ print $1 + $2*256 }')))`
 
 if [ -z $CRATE_ID ]; then
     printf "Error getting crate ID\n"
@@ -439,6 +414,39 @@ else
     printf "Make sure the CPU is connecte to the correct ATCA crate\n"
     printf "\n"
     exit
+fi
+
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
+    usage
+fi
+
+# Checking if MCS file was given in GZ format
+printf "Verifying if MCS file is compressed...            "
+if [[ $MCS_FILE_NAME == *.gz ]]; then
+    printf "Yes, GZ file detected.\n"
+
+    # Extract the MCS file into the remoe host's /tmp folder
+    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+
+    printf "Extracting GZ file into CPU disk...               "
+    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
+
+    if [ "$?" -eq 0 ]; then
+        printf "Done!\n"
+    else
+        printf "ERROR extracting MCS file. Aborting...\n\n"
+        exit
+    fi
+
+else
+    # If MCS file is not in GZ format, use the original file instead
+    printf "No, MCS file detected.\n"
+    MCS_FILE=$MCS_FILE_NAME
 fi
 
 # Current firmware build string from FPGA
