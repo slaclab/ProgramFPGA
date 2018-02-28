@@ -1,5 +1,13 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.15: 2018-02-28 J. Vasquez
+- Add option to use the localhost as CPU.
+- Check and handler IPMI errors.
+- Verify extraction of MCS file.
+- Orginize order of inital testing.
+- Print more status messages.
+- Code cleanup.
+
 ## R1.0.14: 2018-01-29 J. Vasquez
 - Fix bug: hardcoded SHM name and IPMB address.
 
