@@ -272,8 +272,12 @@ else
     printf "Connection OK!\n"
 fi
 
-if ! $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    echo "MCS file not found on remote CPU!"
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
     usage
 fi
 
