@@ -79,12 +79,13 @@ getBuildString()
 # Get FPGA Version
 getFpgaVersion()
 {
-  echo $(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
+    echo $(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x04 0xf2 0x04)
 }
 
 # Set 1st stage boot
 setFirstStageBoot()
-{    printf "Setting boot address to 1st stage boot...         "
+{
+    printf "Setting boot address to 1st stage boot...         "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF1 0 0 0 0 &> /dev/null
     sleep 1
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF0 &> /dev/null
@@ -140,9 +141,9 @@ rebootFPGA()
 # Get FPGA's MAC address via IPMI
 getMacIpmi()
 {
-     MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
+    MAC=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0x02 0x00 | awk '{print $2 ":" $3 ":" $4 ":" $5 ":" $6 ":" $7}')
 
-     echo $MAC
+    echo $MAC
 }
 # Get FPGA's MAC address from arp table
 getMacArp()
