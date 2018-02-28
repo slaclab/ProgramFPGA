@@ -263,63 +263,21 @@ else
     CPU_EXEC="ssh -x $CPU_USER@$CPU_NAME"
 fi
 
-# Check connection with shelfmanager. Exit on error
-printf "Checking connection with the shelfmanager...      "
-if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
-    printf "Shelfmanager unreachable!\n"
-    exit
-else
-    printf "Connection OK!\n"
-fi
-
-# Check if the MCS is reachable on the CPU
-printf "Check if the MCS is reachable in the CPU...       "
-if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    printf "File was found on CPU!\n"
-else
-    printf "File was not found on CPU!\n"
-    usage
-fi
-
-# Programing methos to use
-printf "Programing method to use:                         "
-if [ $USE_FSB ]; then
-    printf "1st stage boot\n"
-else
-    printf "2nd stage boot\n"
-fi
-
-# Calculate IPMB address based on slot number
-IPMB=$(expr 0128 + 2 \* $SLOT)
-printf "IPMB address:                                     0x%X\n" $IPMB
-
-# Current firmware build string from FPGA
-printf "Current firmware build string:                    "
-BS_OLD=$(getBuildString)
-for c in $BS_OLD ; do printf "\x$c" ; done
-printf "\n"
-
-# Current firmware version from FPGA
-printf "Current FPGA Version:                             "
-VER_OLD=$(getFpgaVersion)
-for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
-printf "0x$VER_SWAP_OLD\n"
-
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
 RT=$($CPU_EXEC /bin/uname -r | grep rt)
 if [ -z $RT ]; then
-	printf "non-RT kernel\n"
-	ARCH=rhel6-x86_64
+    printf "non-RT kernel\n"
+    ARCH=rhel6-x86_64
 else
-	printf "RT kernel\n"
+    printf "RT kernel\n"
 
     # Check buildroot version
     printf "Looking for Buildroot version...                  "
     BR2015=$($CPU_EXEC /bin/uname -r | grep 3.18.11)
     if [ $BR2015 ]; then
         printf "buildroot-2015.02-x86_64\n"
-    	ARCH=buildroot-2015.02-x86_64
+        ARCH=buildroot-2015.02-x86_64
     else
         BR2016=$($CPU_EXEC /bin/uname -r | grep 4.8.11)
         if [ $BR2016 ]; then
@@ -342,6 +300,24 @@ else
     YAML_FILE=$YAML_TOP/2sb/FirmwareLoader.yaml
 fi
 
+# Check connection with shelfmanager. Exit on error
+printf "Checking connection with the shelfmanager...      "
+if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
+    printf "Shelfmanager unreachable!\n"
+    exit
+else
+    printf "Connection OK!\n"
+fi
+
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
+    usage
+fi
+
 # Checking if MCS file was given in GZ format
 printf "Verifying if MCS file is compressed...            "
 if [[ $MCS_FILE_NAME == *.gz ]]; then
@@ -360,6 +336,18 @@ else
     printf "No, MCS file detected.\n"
     MCS_FILE=$MCS_FILE_NAME
 fi
+
+# Programing methos to use
+printf "Programing method to use:                         "
+if [ $USE_FSB ]; then
+    printf "1st stage boot\n"
+else
+    printf "2nd stage boot\n"
+fi
+
+# Calculate IPMB address based on slot number
+IPMB=$(expr 0128 + 2 \* $SLOT)
+printf "IPMB address:                                     0x%X\n" $IPMB
 
 # Read crate ID from the shelfmanager, as a 4-digit hex number
 printf "Looking for crate ID...                           "
@@ -446,6 +434,18 @@ else
     exit
 fi
 
+# Current firmware build string from FPGA
+printf "Current firmware build string:                    "
+BS_OLD=$(getBuildString)
+for c in $BS_OLD ; do printf "\x$c" ; done
+printf "\n"
+
+# Current firmware version from FPGA
+printf "Current FPGA Version:                             "
+VER_OLD=$(getFpgaVersion)
+for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
+printf "0x$VER_SWAP_OLD\n"
+
 # If 1st stage boot method is used, then:
 if [ $USE_FSB ]; then
     # Change bootload address and reboot
@@ -463,6 +463,8 @@ if [ $USE_FSB ]; then
     for c in $VER_FSB ; do VER_SWAP_FSB="$c"$VER_SWAP_FSB ; done
     printf "0x$VER_SWAP_FSB\n"
 fi
+
+exit
 
 # Load image into FPGA
 printf "Programming the FPGA...\n"
