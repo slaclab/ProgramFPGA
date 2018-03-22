@@ -400,7 +400,7 @@ else
         printf "Testing CPU and FPGA connection (with arping)...  "
 
         # In this case, we also get the MAC address from the arping command
-        # as Aarping doesn't update the ARP table
+        # as Arping doesn't update the ARP table
         MAC_ARP=$(getMacArping)
 
         if [ -z MAC_ARP ]; then
