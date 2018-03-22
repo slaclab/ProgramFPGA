@@ -1,5 +1,8 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.16: 2018-03-21 J. Vasquez
+- Bug fix getting the MAC address from the ARP table.
+
 ## R1.0.15: 2018-02-28 J. Vasquez
 - Add option to use the localhost as CPU.
 - Check and handler IPMI errors.
