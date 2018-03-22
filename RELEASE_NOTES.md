@@ -2,6 +2,8 @@
 
 ## R1.0.17: 2018-03-22 J. Vasquez
 - Bug fix calculating the crate ID.
+- Bug fix when the same FPGA IP is connected in more than one interface.
+  Look for the MAC address only in the interface connected to the FPGA.
 
 ## R1.0.16: 2018-03-21 J. Vasquez
 - Bug fix getting the MAC address from the ARP table.
