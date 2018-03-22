@@ -345,7 +345,7 @@ if [ "$?" -ne 0 ]; then
     exit
 fi
 
-CRATE_ID=`printf %04X  $((0x$(echo $CRATE_ID_STR | awk '{ print $1 + $2*256 }')))`
+CRATE_ID=`printf %04X  $((0x$(echo $CRATE_ID_STR | awk '{ print $2$1 }')))`
 
 if [ -z $CRATE_ID ]; then
     printf "Error getting crate ID\n"
