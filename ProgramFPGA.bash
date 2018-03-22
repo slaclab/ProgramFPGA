@@ -170,7 +170,7 @@ getMacArp()
 getMacArping()
 {
     if $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        MAC=$($CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
+        MAC=$($CPU_EXEC "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
         echo $MAC
     else
         echo
