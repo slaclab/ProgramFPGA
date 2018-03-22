@@ -1,5 +1,8 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.0.17: 2018-03-22 J. Vasquez
+- Bug fix calculating the crate ID.
+
 ## R1.0.16: 2018-03-21 J. Vasquez
 - Bug fix getting the MAC address from the ARP table.
 
