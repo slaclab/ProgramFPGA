@@ -314,15 +314,6 @@ else
     YAML_FILE=$YAML_TOP/2sb/FirmwareLoader.yaml
 fi
 
-# Check connection with shelfmanager. Exit on error
-printf "Checking connection with the shelfmanager...      "
-if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
-    printf "Shelfmanager unreachable!\n"
-    exit
-else
-    printf "Connection OK!\n"
-fi
-
 # Check if the MCS is reachable on the CPU
 printf "Check if the MCS is reachable in the CPU...       "
 if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
@@ -353,6 +344,15 @@ else
     # If MCS file is not in GZ format, use the original file instead
     printf "No, MCS file detected.\n"
     MCS_FILE=$MCS_FILE_NAME
+fi
+
+# Check connection with shelfmanager. Exit on error
+printf "Checking connection with the shelfmanager...      "
+if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
+    printf "Shelfmanager unreachable!\n"
+    exit
+else
+    printf "Connection OK!\n"
 fi
 
 # Programing methos to use
