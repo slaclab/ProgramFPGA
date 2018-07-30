@@ -380,6 +380,43 @@ else
     printf "$CPU_ETH\n"
 fi
 
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
+    usage
+fi
+
+# Checking if MCS file was given in GZ format
+printf "Verifying if MCS file is compressed...            "
+if [[ $MCS_FILE_NAME == *.gz ]]; then
+    printf "Yes, GZ file detected.\n"
+
+    # Extract the MCS file into the remoe host's /tmp folder
+    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+
+    printf "Extracting GZ file into CPU disk...               "
+    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
+
+    if [ "$?" -eq 0 ]; then
+        printf "Done!\n"
+    else
+        printf "ERROR extracting MCS file. Aborting...\n\n"
+        exit
+    fi
+else
+    # If MCS file is not in GZ format, use the original file instead
+    printf "No, MCS file detected.\n"
+    MCS_FILE=$MCS_FILE_NAME
+fi
+
+# If 1st stage boot method is used, then change bootload address and reboot
+if [ $USE_FSB ]; then
+    setFirstStageBoot
+fi
+
 # Check connection between CPU and FPGA.
 printf "Testing CPU and FPGA connection (with ping)...    "
 
@@ -437,39 +474,6 @@ else
     exit
 fi
 
-# Check if the MCS is reachable on the CPU
-printf "Check if the MCS is reachable in the CPU...       "
-if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    printf "File was found on CPU!\n"
-else
-    printf "File was not found on CPU!\n"
-    usage
-fi
-
-# Checking if MCS file was given in GZ format
-printf "Verifying if MCS file is compressed...            "
-if [[ $MCS_FILE_NAME == *.gz ]]; then
-    printf "Yes, GZ file detected.\n"
-
-    # Extract the MCS file into the remoe host's /tmp folder
-    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
-
-    printf "Extracting GZ file into CPU disk...               "
-    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
-
-    if [ "$?" -eq 0 ]; then
-        printf "Done!\n"
-    else
-        printf "ERROR extracting MCS file. Aborting...\n\n"
-        exit
-    fi
-
-else
-    # If MCS file is not in GZ format, use the original file instead
-    printf "No, MCS file detected.\n"
-    MCS_FILE=$MCS_FILE_NAME
-fi
-
 # Current firmware build string from FPGA
 printf "Current firmware build string:                    "
 BS_OLD=$(getBuildString)
@@ -494,32 +498,6 @@ if [ "$?" -ne 0 ]; then
 else
     for c in $VER_OLD ; do VER_SWAP_OLD="$c"$VER_SWAP_OLD ; done
     printf "0x$VER_SWAP_OLD\n"
-fi
-
-# If 1st stage boot method is used, then:
-if [ $USE_FSB ]; then
-    # Change bootload address and reboot
-    setFirstStageBoot
-
-    # Read FSB firmware build string
-    printf "1st stage boot firmware build string:             "
-    BS_FSB=$(getBuildString)
-
-    # Verify if there were IPMI error
-    if [ "$?" -ne 0 ]; then
-        printf "Couldn't read the FPGA version via IPMI. Aborting...\n"
-        setSecondStageBoot
-        exit
-    else
-        for c in $BS_FSB ; do printf "\x$c" ; done
-        printf "\n"
-    fi
-
-    # Read FSB firmware version
-    printf "1st stage boot FPGA Version:                      "
-    VER_FSB=$(getFpgaVersion)
-    for c in $VER_FSB ; do VER_SWAP_FSB="$c"$VER_SWAP_FSB ; done
-    printf "0x$VER_SWAP_FSB\n"
 fi
 
 # Load image into FPGA
@@ -617,25 +595,11 @@ printf "\n"
 
 printf "MCS file:                                         $MCS_FILE_NAME\n"
 
-printf "Programming method used:                          "
-if [ $USE_FSB ]; then
-    printf "1st stage boot\n"
-else
-    printf "2sn stage boot\n"
-fi
-
 printf "Old firmware build string:                        "
 for c in $BS_OLD ; do printf "\x$c" ; done
 printf "\n"
 
 printf "Old FPGA version:                                 0x$VER_SWAP_OLD\n"
-if [ $USE_FSB ]; then
-    printf "1st stage boot firmware build string:             "
-    for c in $BS_FSB ; do printf "\x$c" ; done
-    printf "\n"
-
-    printf "1st stage boot FPGA Version:                      0x$VER_SWAP_FSB\n"
-fi
 
 printf "New firmware build string:                        "
 for c in $BS_NEW ; do printf "\x$c" ; done
