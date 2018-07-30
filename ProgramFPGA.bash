@@ -323,6 +323,38 @@ else
     printf "Connection OK!\n"
 fi
 
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
+    usage
+fi
+
+# Checking if MCS file was given in GZ format
+printf "Verifying if MCS file is compressed...            "
+if [[ $MCS_FILE_NAME == *.gz ]]; then
+    printf "Yes, GZ file detected.\n"
+
+    # Extract the MCS file into the remoe host's /tmp folder
+    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+
+    printf "Extracting GZ file into CPU disk...               "
+    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
+
+    if [ "$?" -eq 0 ]; then
+        printf "Done!\n"
+    else
+        printf "ERROR extracting MCS file. Aborting...\n\n"
+        exit
+    fi
+else
+    # If MCS file is not in GZ format, use the original file instead
+    printf "No, MCS file detected.\n"
+    MCS_FILE=$MCS_FILE_NAME
+fi
+
 # Programing methos to use
 printf "Programing method to use:                         "
 if [ $USE_FSB ]; then
@@ -378,38 +410,6 @@ if [ -z $CPU_ETH ]; then
     exit
 else
     printf "$CPU_ETH\n"
-fi
-
-# Check if the MCS is reachable on the CPU
-printf "Check if the MCS is reachable in the CPU...       "
-if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    printf "File was found on CPU!\n"
-else
-    printf "File was not found on CPU!\n"
-    usage
-fi
-
-# Checking if MCS file was given in GZ format
-printf "Verifying if MCS file is compressed...            "
-if [[ $MCS_FILE_NAME == *.gz ]]; then
-    printf "Yes, GZ file detected.\n"
-
-    # Extract the MCS file into the remoe host's /tmp folder
-    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
-
-    printf "Extracting GZ file into CPU disk...               "
-    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
-
-    if [ "$?" -eq 0 ]; then
-        printf "Done!\n"
-    else
-        printf "ERROR extracting MCS file. Aborting...\n\n"
-        exit
-    fi
-else
-    # If MCS file is not in GZ format, use the original file instead
-    printf "No, MCS file detected.\n"
-    MCS_FILE=$MCS_FILE_NAME
 fi
 
 # If 1st stage boot method is used, then change bootload address and reboot
