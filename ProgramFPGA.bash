@@ -427,51 +427,79 @@ if $($CPU_EXEC /bin/ping -c 2 $FPGA_IP &> /dev/null) ; then
     # Get the MAC address from the CPU ARP table
     MAC_ARP=$(getMacArp)
 else
-    # On nor-RT linux, exit in case of error
-    if [ -z $RT ]; then
-        printf "FPGA unreachable!\n"
-        exit
-    else
-        # But on linux-RT, we try with arping first.
-        printf "Failed!\n"
+    printf "Failed!\n"
+
+    if [ $RT ]; then
+        # On linux-RT we try with arping too.
         printf "Testing CPU and FPGA connection (with arping)...  "
 
         # In this case, we also get the MAC address from the arping command
         # as Arping doesn't update the ARP table
         MAC_ARP=$(getMacArping)
 
-        if [ -z MAC_ARP ]; then
-            printf "FPGA unreachable!\n"
+        if [ -z $MAC_ARP ]; then
+            printf "Failed!\n"
+
+            # Arping should not failed, even in FSB mode.
+            printf "FPGA is unreachable. Aborting...\n"
             exit
         else
             printf "FPGA connection OK!\n"
         fi
+    else
+        printf "FPGA is unreachable."
+        if [ $USE_FSB ]; then
+            # If FSB is used, the FPGA may not respond to ping, and arping may not be available in the CPU. So, the MAC
+            # address of the carrier can not be found in the ARP table, so it can not be check with the address read via
+            # IPMI. In this case we can continue if the user is sure wverything is connected correctly.
+            printf "\n"
+            printf "MAC address from ARP can not be read, so it can not be compared with the MAC address read from IPMI.\n"
+            printf "The MAC address checking prevents you from programing a different carrier by mistake."
+            printf "So please check that the CPU is connected to the correct ATCA crate if you whish to continue.\n"
+            printf "Do you whish to continue with the programming process?\n"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes )
+                        # Continue, withtout checking doing the MAC address checking
+                        DONT_CHECK_MAC=1
+                        break;;
+                    No )
+                        printf "Aborting...\n";
+                        exit;;
+                esac
+            done
+        else
+            printf " Aborting...\n"
+            exit
+        fi
     fi
 fi
 
-# Check if FPGA's MAC get via IPMI and ARP match
-printf "Reading FPGA's MAC address via IPMI...            "
+if [ -z $DONT_CHECK_MAC ]; then
+    # Check if FPGA's MAC get via IPMI and ARP match
+    printf "Reading FPGA's MAC address via IPMI...            "
 
-MAC_IPMI=$(getMacIpmi)
+    MAC_IPMI=$(getMacIpmi)
 
-# Verify if there were IPMI error
-if [ "$?" -ne 0 ]; then
-    printf "Couldn't read the MAC address version via IPMI. Aborting...\n"
-    exit
-fi
+    # Verify if there were IPMI error
+    if [ "$?" -ne 0 ]; then
+        printf "Couldn't read the MAC address version via IPMI. Aborting...\n"
+        exit
+    fi
 
-printf "$MAC_IPMI\n"
-printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
-if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
-    printf "They match!\n"
-else
-    printf "They don't match\n"
+    printf "$MAC_IPMI\n"
+    printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
+    if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
+        printf "They match!\n"
+    else
+        printf "They don't match\n"
 
-    printf "\n"
-    printf "Aborting as the MAC adress checking failed.\n"
-    printf "Make sure the CPU is connecte to the correct ATCA crate\n"
-    printf "\n"
-    exit
+        printf "\n"
+        printf "Aborting as the MAC adress checking failed.\n"
+        printf "Make sure the CPU is connected to the correct ATCA crate\n"
+        printf "\n"
+        exit
+    fi
 fi
 
 # Current firmware build string from FPGA
