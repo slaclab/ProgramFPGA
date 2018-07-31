@@ -454,7 +454,7 @@ else
             # IPMI. In this case we can continue if the user is sure wverything is connected correctly.
             printf "\n"
             printf "MAC address from ARP can not be read, so it can not be compared with the MAC address read from IPMI.\n"
-            printf "The MAC address checking prevents you from programing a different carrier by mistake."
+            printf "The MAC address checking prevents you from programing a different carrier by mistake.\n"
             printf "So please check that the CPU is connected to the correct ATCA crate if you whish to continue.\n"
             printf "Do you whish to continue with the programming process?\n"
             select yn in "Yes" "No"; do
