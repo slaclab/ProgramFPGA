@@ -314,6 +314,38 @@ else
     YAML_FILE=$YAML_TOP/2sb/FirmwareLoader.yaml
 fi
 
+# Check if the MCS is reachable on the CPU
+printf "Check if the MCS is reachable in the CPU...       "
+if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
+    printf "File was found on CPU!\n"
+else
+    printf "File was not found on CPU!\n"
+    usage
+fi
+
+# Checking if MCS file was given in GZ format
+printf "Verifying if MCS file is compressed...            "
+if [[ $MCS_FILE_NAME == *.gz ]]; then
+    printf "Yes, GZ file detected.\n"
+
+    # Extract the MCS file into the remoe host's /tmp folder
+    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
+
+    printf "Extracting GZ file into CPU disk...               "
+    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
+
+    if [ "$?" -eq 0 ]; then
+        printf "Done!\n"
+    else
+        printf "ERROR extracting MCS file. Aborting...\n\n"
+        exit
+    fi
+else
+    # If MCS file is not in GZ format, use the original file instead
+    printf "No, MCS file detected.\n"
+    MCS_FILE=$MCS_FILE_NAME
+fi
+
 # Check connection with shelfmanager. Exit on error
 printf "Checking connection with the shelfmanager...      "
 if ! ping -c 2 $SHELFMANAGER &> /dev/null ; then
@@ -380,6 +412,11 @@ else
     printf "$CPU_ETH\n"
 fi
 
+# If 1st stage boot method is used, then change bootload address and reboot
+if [ $USE_FSB ]; then
+    setFirstStageBoot
+fi
+
 # Check connection between CPU and FPGA.
 printf "Testing CPU and FPGA connection (with ping)...    "
 
@@ -390,84 +427,79 @@ if $($CPU_EXEC /bin/ping -c 2 $FPGA_IP &> /dev/null) ; then
     # Get the MAC address from the CPU ARP table
     MAC_ARP=$(getMacArp)
 else
-    # On nor-RT linux, exit in case of error
-    if [ -z $RT ]; then
-        printf "FPGA unreachable!\n"
-        exit
-    else
-        # But on linux-RT, we try with arping first.
-        printf "Failed!\n"
+    printf "Failed!\n"
+
+    if [ $RT ]; then
+        # On linux-RT we try with arping too.
         printf "Testing CPU and FPGA connection (with arping)...  "
 
         # In this case, we also get the MAC address from the arping command
         # as Arping doesn't update the ARP table
         MAC_ARP=$(getMacArping)
 
-        if [ -z MAC_ARP ]; then
-            printf "FPGA unreachable!\n"
+        if [ -z $MAC_ARP ]; then
+            printf "Failed!\n"
+
+            # Arping should not failed, even in FSB mode.
+            printf "FPGA is unreachable. Aborting...\n"
             exit
         else
             printf "FPGA connection OK!\n"
         fi
+    else
+        printf "FPGA is unreachable."
+        if [ $USE_FSB ]; then
+            # If FSB is used, the FPGA may not respond to ping, and arping may not be available in the CPU. So, the MAC
+            # address of the carrier can not be found in the ARP table, so it can not be check with the address read via
+            # IPMI. In this case we can continue if the user is sure wverything is connected correctly.
+            printf "\n"
+            printf "MAC address from ARP can not be read, so it can not be compared with the MAC address read from IPMI.\n"
+            printf "The MAC address checking prevents you from programing a different carrier by mistake.\n"
+            printf "So please check that the CPU is connected to the correct ATCA crate if you whish to continue.\n"
+            printf "Do you whish to continue with the programming process?\n"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes )
+                        # Continue, withtout checking doing the MAC address checking
+                        DONT_CHECK_MAC=1
+                        break;;
+                    No )
+                        printf "Aborting...\n";
+                        exit;;
+                esac
+            done
+        else
+            printf " Aborting...\n"
+            exit
+        fi
     fi
 fi
 
-# Check if FPGA's MAC get via IPMI and ARP match
-printf "Reading FPGA's MAC address via IPMI...            "
+if [ -z $DONT_CHECK_MAC ]; then
+    # Check if FPGA's MAC get via IPMI and ARP match
+    printf "Reading FPGA's MAC address via IPMI...            "
 
-MAC_IPMI=$(getMacIpmi)
+    MAC_IPMI=$(getMacIpmi)
 
-# Verify if there were IPMI error
-if [ "$?" -ne 0 ]; then
-    printf "Couldn't read the MAC address version via IPMI. Aborting...\n"
-    exit
-fi
-
-printf "$MAC_IPMI\n"
-printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
-if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
-    printf "They match!\n"
-else
-    printf "They don't match\n"
-
-    printf "\n"
-    printf "Aborting as the MAC adress checking failed.\n"
-    printf "Make sure the CPU is connecte to the correct ATCA crate\n"
-    printf "\n"
-    exit
-fi
-
-# Check if the MCS is reachable on the CPU
-printf "Check if the MCS is reachable in the CPU...       "
-if $CPU_EXEC [ -f $MCS_FILE_NAME ] ; then
-    printf "File was found on CPU!\n"
-else
-    printf "File was not found on CPU!\n"
-    usage
-fi
-
-# Checking if MCS file was given in GZ format
-printf "Verifying if MCS file is compressed...            "
-if [[ $MCS_FILE_NAME == *.gz ]]; then
-    printf "Yes, GZ file detected.\n"
-
-    # Extract the MCS file into the remoe host's /tmp folder
-    MCS_FILE=/tmp/$(basename "${MCS_FILE_NAME%.*}")
-
-    printf "Extracting GZ file into CPU disk...               "
-    $CPU_EXEC "zcat $MCS_FILE_NAME > $MCS_FILE"
-
-    if [ "$?" -eq 0 ]; then
-        printf "Done!\n"
-    else
-        printf "ERROR extracting MCS file. Aborting...\n\n"
+    # Verify if there were IPMI error
+    if [ "$?" -ne 0 ]; then
+        printf "Couldn't read the MAC address version via IPMI. Aborting...\n"
         exit
     fi
 
-else
-    # If MCS file is not in GZ format, use the original file instead
-    printf "No, MCS file detected.\n"
-    MCS_FILE=$MCS_FILE_NAME
+    printf "$MAC_IPMI\n"
+    printf "FPGA's MAC address read from ARP:                 $MAC_ARP, "
+    if [ "$MAC_IPMI" == "$MAC_ARP" ]; then
+        printf "They match!\n"
+    else
+        printf "They don't match\n"
+
+        printf "\n"
+        printf "Aborting as the MAC adress checking failed.\n"
+        printf "Make sure the CPU is connected to the correct ATCA crate\n"
+        printf "\n"
+        exit
+    fi
 fi
 
 # Current firmware build string from FPGA
@@ -496,32 +528,6 @@ else
     printf "0x$VER_SWAP_OLD\n"
 fi
 
-# If 1st stage boot method is used, then:
-if [ $USE_FSB ]; then
-    # Change bootload address and reboot
-    setFirstStageBoot
-
-    # Read FSB firmware build string
-    printf "1st stage boot firmware build string:             "
-    BS_FSB=$(getBuildString)
-
-    # Verify if there were IPMI error
-    if [ "$?" -ne 0 ]; then
-        printf "Couldn't read the FPGA version via IPMI. Aborting...\n"
-        setSecondStageBoot
-        exit
-    else
-        for c in $BS_FSB ; do printf "\x$c" ; done
-        printf "\n"
-    fi
-
-    # Read FSB firmware version
-    printf "1st stage boot FPGA Version:                      "
-    VER_FSB=$(getFpgaVersion)
-    for c in $VER_FSB ; do VER_SWAP_FSB="$c"$VER_SWAP_FSB ; done
-    printf "0x$VER_SWAP_FSB\n"
-fi
-
 # Load image into FPGA
 printf "Programming the FPGA...\n"
 $CPU_EXEC $FW_LOADER_BIN -r -Y $YAML_FILE -a $FPGA_IP $MCS_FILE
@@ -535,24 +541,17 @@ if [ "$RET" -eq 0 ]; then
     printf "FPGA programmed successfully!\n\n"
 else
     printf "ERROR: Errors were found during the FPGA Programming phase (Error code $RET)\n\n"
-fi
-
-# If 1st stage boot was used, return boot address to the second stage boot
-if [ $USE_FSB ]; then
-    setSecondStageBoot
-fi
-
-# If FirmwareLoader returned with errors, end script here
-if [ "$RET" -ne 0 ]; then
-    printf "\n"
     printf "Aborting as the FirmwareLoader failed\n"
     printf "\n"
     exit
 fi
 
-# If 2st stage boot was not used, reboot FPGA.
-# If 1st stage boot was used, a reboot was done when returning to the second stage boot
-if [ -z $USE_FSB ]; then
+if [ $USE_FSB ]; then
+    # If 1st stage boot was used, return boot address to the second stage boot
+    setSecondStageBoot
+else
+    # If 2st stage boot was not used, reboot FPGA.
+    # If 1st stage boot was used, a reboot was done when returning to the second stage boot
     rebootFPGA
 fi
 
@@ -617,25 +616,11 @@ printf "\n"
 
 printf "MCS file:                                         $MCS_FILE_NAME\n"
 
-printf "Programming method used:                          "
-if [ $USE_FSB ]; then
-    printf "1st stage boot\n"
-else
-    printf "2sn stage boot\n"
-fi
-
 printf "Old firmware build string:                        "
 for c in $BS_OLD ; do printf "\x$c" ; done
 printf "\n"
 
 printf "Old FPGA version:                                 0x$VER_SWAP_OLD\n"
-if [ $USE_FSB ]; then
-    printf "1st stage boot firmware build string:             "
-    for c in $BS_FSB ; do printf "\x$c" ; done
-    printf "\n"
-
-    printf "1st stage boot FPGA Version:                      0x$VER_SWAP_FSB\n"
-fi
 
 printf "New firmware build string:                        "
 for c in $BS_NEW ; do printf "\x$c" ; done
