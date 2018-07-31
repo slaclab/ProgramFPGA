@@ -541,24 +541,17 @@ if [ "$RET" -eq 0 ]; then
     printf "FPGA programmed successfully!\n\n"
 else
     printf "ERROR: Errors were found during the FPGA Programming phase (Error code $RET)\n\n"
-fi
-
-# If 1st stage boot was used, return boot address to the second stage boot
-if [ $USE_FSB ]; then
-    setSecondStageBoot
-fi
-
-# If FirmwareLoader returned with errors, end script here
-if [ "$RET" -ne 0 ]; then
-    printf "\n"
     printf "Aborting as the FirmwareLoader failed\n"
     printf "\n"
     exit
 fi
 
-# If 2st stage boot was not used, reboot FPGA.
-# If 1st stage boot was used, a reboot was done when returning to the second stage boot
-if [ -z $USE_FSB ]; then
+if [ $USE_FSB ]; then
+    # If 1st stage boot was used, return boot address to the second stage boot
+    setSecondStageBoot
+else
+    # If 2st stage boot was not used, reboot FPGA.
+    # If 1st stage boot was used, a reboot was done when returning to the second stage boot
     rebootFPGA
 fi
 
