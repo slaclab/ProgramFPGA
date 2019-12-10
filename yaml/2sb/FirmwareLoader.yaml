@@ -29,6 +29,8 @@ mmio: &mmio
 SRPProtoConfig: &SRPProtoConfig
   SRP:
     protocolVersion: SRP_UDP_V2
+    timeoutUS: 500000
+    retryCount: 50
   UDP:
     port: 8192
 
