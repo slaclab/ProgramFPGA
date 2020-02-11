@@ -1,5 +1,8 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.2.0: 2019-12-10 J. Vasquez
+- Add support for buildroot 2019.08.
+
 ## R1.1.0: 2019-12-10 J. Vasquez
 - Increase the SRP timeout and retry counts to avoid FirmwareLoader to failed when
   used on a CPU which runs IOC with CPSW 4.3.1 and the RT priorities set to new values,
