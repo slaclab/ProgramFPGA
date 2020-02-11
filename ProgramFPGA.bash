@@ -298,8 +298,14 @@ else
             printf "buildroot-2016.11.1\n"
             ARCH=buildroot-2016.11.1-x86_64
         else
-            prtinf "Buildroot version not supported!"
-            exit
+            BR2019=$($CPU_EXEC /bin/uname -r | grep 4.14.139)
+            if [ $BR2019 ]; then
+                printf "buildroot-2019.08\n"
+                ARCH=buildroot-2019.08-x86_64
+            else
+                prtinf "Buildroot version not supported!"
+                exit
+            fi
         fi
     fi
 fi
