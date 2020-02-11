@@ -1,8 +1,14 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.1.0: 2019-12-10 J. Vasquez
+- Increase the SRP timeout and retry counts to avoid FirmwareLoader to failed when
+  used on a CPU which runs IOC with CPSW 4.3.1 and the RT priorities set to new values,
+  which can cause it to fail due to SRP responses to take longer that before.
+
 ## R1.0.18: 2018-07-30 J. Vasquez
-- If pings fails, arping is not availbale (on non-linuxRT CPUs), and FSB mode is used, the script prompt the user if he wants to
-  continue without testing the MAC address (ARP vs IPMI).
+- If pings fails, arping is not availbale (on non-linuxRT CPUs), and FSB mode is used,
+  the script prompt the user if he wants to continue without testing the MAC address
+  (ARP vs IPMI).
 
 ## R1.0.17: 2018-03-22 J. Vasquez
 - Bug fix calculating the crate ID.
