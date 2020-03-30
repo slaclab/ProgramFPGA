@@ -303,7 +303,7 @@ else
                 printf "buildroot-2019.08\n"
                 ARCH=buildroot-2019.08-x86_64
             else
-                prtinf "Buildroot version not supported!"
+                printf "Buildroot version not supported!"
                 exit
             fi
         fi
