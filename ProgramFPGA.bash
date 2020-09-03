@@ -373,6 +373,11 @@ fi
 IPMB=$(expr 0128 + 2 \* $SLOT)
 printf "IPMB address:                                     0x%X\n" $IPMB
 
+# If 1st stage boot method is used, then change bootload address and reboot
+if [ $USE_FSB ]; then
+    setFirstStageBoot
+fi
+
 # Read crate ID from the shelfmanager, as a 4-digit hex number
 printf "Looking for crate ID...                           "
 
@@ -416,11 +421,6 @@ if [ -z $CPU_ETH ]; then
     exit
 else
     printf "$CPU_ETH\n"
-fi
-
-# If 1st stage boot method is used, then change bootload address and reboot
-if [ $USE_FSB ]; then
-    setFirstStageBoot
 fi
 
 # Check connection between CPU and FPGA.
