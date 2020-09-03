@@ -1,5 +1,12 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.2.1: 2020-09-03 J. Vasquez
+- Bug fix: move the call to setFirstStageBoot before any operation 
+  related to read BSI information, as that won't be available in the 
+  case of an corrupted second stage image.
+- Fix a typo when printing the error message when an unsupported 
+  buildroot version is found.
+
 ## R1.2.0: 2019-12-10 J. Vasquez
 - Add support for buildroot 2019.08.
 
