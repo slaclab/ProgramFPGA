@@ -636,7 +636,7 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
 printf "Connection between CPU and FPGA (using ping):     "
 # Trying first with ping
-if $CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if ! $CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
     printf "FPGA connection OK!\n"
 else
     # On nor-RT linux, the test failed
@@ -647,7 +647,7 @@ else
         printf "Failed!\n"
         printf "Connection between CPU and FPGA (using arping):   "
 
-        if ! $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
+        if $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
             printf "FPGA unreachable!\n"
         else
             printf "FPGA connection OK!\n"
