@@ -1,5 +1,8 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.2.2: 2022-09-28 M. Skoufis 
+- Bug fix: Invert logical checks for ping and arping
+
 ## R1.2.1: 2020-09-03 J. Vasquez
 - Bug fix: move the call to setFirstStageBoot before any operation 
   related to read BSI information, as that won't be available in the 
