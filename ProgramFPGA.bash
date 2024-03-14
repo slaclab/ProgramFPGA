@@ -23,7 +23,8 @@
 
 # TOP directory, replacing the slac.stanford.edu synlink by slac
 # which is not always present in the linuxRT CPUs
-TOP=$(dirname -- "$(readlink -f $0)" | sed 's/slac.stanford.edu/slac/g')
+#TOP=$(dirname -- "$(readlink -f $0)" | sed 's/slac.stanford.edu/slac/g')
+TOP=$(dirname -- "$(readlink -f $0)")
 
 # Site specific configuration
 CONFIG_SITE=$TOP/config.site
@@ -39,7 +40,7 @@ fi
 source $CONFIG_SITE
 
 if [ -z "$FIRMWARELOADER_TOP" ]; then
-  echo "The location of FirmwareLoader was note defined!. Please update your $CONFIG_SITE file."
+  echo "The location of FirmwareLoader was not defined! Please update your $CONFIG_SITE file."
   exit
 fi
 
@@ -57,6 +58,7 @@ usage() {
     echo "    -u|--user         cpu_user_name          : username for the CPU (default: laci). Omit if localhost is used."
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
     echo "    -f|--fsb                                 : use first stage boot (default to second stage boot)"
+    echo "    -r|--macarp       mac_arping             : FPGA MAC address extracted with arping (default is unset)"
     echo "    -h|--help                                : show this message"
     echo
     exit
@@ -162,7 +164,6 @@ getMacIpmi()
 getMacArp()
 {
     MAC=$($CPU_EXEC cat /proc/net/arp | grep $CPU_ETH | grep $FPGA_IP | grep -v 00:00:00:00:00:00 | awk '{print $4}')
-
     echo $MAC
 }
 
@@ -213,6 +214,10 @@ case $key in
     ;;
     -f|--fsb)
     USE_FSB=1
+    shift
+    ;;
+    -r|--macarp)
+    MAC_ARPING="$2"
     shift
     ;;
     -h|--help)
@@ -361,8 +366,8 @@ else
     printf "Connection OK!\n"
 fi
 
-# Programing methos to use
-printf "Programing method to use:                         "
+# Programming method to use
+printf "Programming method to use:                         "
 if [ $USE_FSB ]; then
     printf "1st stage boot\n"
 else
@@ -410,7 +415,7 @@ printf "CPU IP address:                                   $CPU_IP\n"
 
 # Check network interface name on CPU connected to the FPGA based on its IP address. Exit on error
 printf "Looking interface connected to the FPGA...        "
-CPU_ETH=$($CPU_EXEC /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}')
+CPU_ETH=$($CPU_EXEC /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}' | sed 's/://g')
 
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
@@ -438,35 +443,37 @@ else
     if [ $RT ]; then
         # On linux-RT we try with arping too.
         printf "Testing CPU and FPGA connection (with arping)...  "
+    
+        if [ -z $MAC_ARPING ]; then
 
-        # In this case, we also get the MAC address from the arping command
-        # as Arping doesn't update the ARP table
-        MAC_ARP=$(getMacArping)
+            printf "Requires Root Password\n\n"
+            printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
+            printf "Please retrieve the FPGA MAC address with the command provided below.\n"
+            printf "Then run ProgramFPGA.bash again with the --macarp command line option:\n"
+            printf "RUN LOCALLY AS ROOT (on $CPU_NAME): /usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\"\n\n"
 
-        if [ -z $MAC_ARP ]; then
             printf "Failed!\n"
-
-            # Arping should not failed, even in FSB mode.
             printf "FPGA is unreachable. Aborting...\n"
             exit
         else
+            MAC_ARP=$MAC_ARPING
             printf "FPGA connection OK!\n"
         fi
     else
         printf "FPGA is unreachable."
         if [ $USE_FSB ]; then
             # If FSB is used, the FPGA may not respond to ping, and arping may not be available in the CPU. So, the MAC
-            # address of the carrier can not be found in the ARP table, so it can not be check with the address read via
-            # IPMI. In this case we can continue if the user is sure wverything is connected correctly.
+            # address of the carrier can not be found in the ARP table, so it can not be checked with the address read via
+            # IPMI. In this case we can continue if the user is sure everything is connected correctly.
             printf "\n"
             printf "MAC address from ARP can not be read, so it can not be compared with the MAC address read from IPMI.\n"
-            printf "The MAC address checking prevents you from programing a different carrier by mistake.\n"
+            printf "The MAC address checking prevents you from programming a different carrier by mistake.\n"
             printf "So please check that the CPU is connected to the correct ATCA crate if you whish to continue.\n"
             printf "Do you whish to continue with the programming process?\n"
             select yn in "Yes" "No"; do
                 case $yn in
                     Yes )
-                        # Continue, withtout checking doing the MAC address checking
+                        # Continue, without checking the MAC address
                         DONT_CHECK_MAC=1
                         break;;
                     No )
@@ -477,7 +484,7 @@ else
         else
             printf " Aborting...\n"
             exit
-        fi
+       fi
     fi
 fi
 
@@ -644,14 +651,14 @@ else
         printf "FPGA unreachable!\n"
     else
         # But on linux-RT, we try with arping first
-        printf "Failed!\n"
-        printf "Connection between CPU and FPGA (using arping):   "
+        printf "Failed!\n\n"
 
-        if $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-            printf "FPGA unreachable!\n"
-        else
-            printf "FPGA connection OK!\n"
-        fi
+        printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
+        printf "Check the connection between CPU and FPGA with arping using the following commands (requires root password):\n"
+        printf "REMOTELY: $CPU_EXEC "
+        printf "\"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\" \n"
+        printf "LOCALLY (on $CPU_NAME): su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\n\n"
+        printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
     fi
 fi
 
