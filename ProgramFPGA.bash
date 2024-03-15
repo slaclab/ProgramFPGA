@@ -23,7 +23,6 @@
 
 # TOP directory, replacing the slac.stanford.edu synlink by slac
 # which is not always present in the linuxRT CPUs
-#TOP=$(dirname -- "$(readlink -f $0)" | sed 's/slac.stanford.edu/slac/g')
 TOP=$(dirname -- "$(readlink -f $0)")
 
 # Site specific configuration
@@ -59,6 +58,7 @@ usage() {
     echo "    -a|--addr         cpu_last_ip_addr_octet : last octect on the cpu ip addr (default to 1)"
     echo "    -f|--fsb                                 : use first stage boot (default to second stage boot)"
     echo "    -r|--macarp       mac_arping             : FPGA MAC address extracted with arping (default is unset)"
+    echo "    -p|--passwd       root_passwd            : The root password used primarily to run arping (default is unset)"
     echo "    -h|--help                                : show this message"
     echo
     exit
@@ -170,12 +170,9 @@ getMacArp()
 # Try to arping the FPGA and get its MAC address
 getMacArping()
 {
-    if $CPU_EXEC "su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null" ; then
-        MAC=$($CPU_EXEC "su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'" | grep -oE "([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}")
-        echo $MAC
-    else
-        echo
-    fi
+    CMD="$ROOT_AUTH $CPU_EXEC \"su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'\" | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\""
+    MAC=$(eval $CMD)
+    echo $MAC
 }
 
 #############
@@ -218,6 +215,10 @@ case $key in
     ;;
     -r|--macarp)
     MAC_ARPING="$2"
+    shift
+    ;;
+    -p|--passwd)
+    ROOT_PASSWD="$2"
     shift
     ;;
     -h|--help)
@@ -313,6 +314,12 @@ else
             fi
         fi
     fi
+fi
+
+# Check if the user chose to provide the root password at the command line
+if ! [ -z $ROOT_PASSWD ]; then
+    # Set the root authorization command prefix
+    ROOT_AUTH="echo $ROOT_PASSWD | "
 fi
 
 # Choosing the appropiate programming tool binary
@@ -445,18 +452,31 @@ else
         printf "Testing CPU and FPGA connection (with arping)...  "
     
         if [ -z $MAC_ARPING ]; then
+            if [ -z $ROOT_PASSWD ]; then
+                printf "Requires Root Password\n\n"
+                printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
+                printf "Please retrieve the FPGA MAC address with the command provided below.\n"
+                printf "Then run ProgramFPGA.bash again with the --macarp command line option:\n\n"
+                printf "RUN LOCALLY AS ROOT (on $CPU_NAME): /usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\"\n\n"
 
-            printf "Requires Root Password\n\n"
-            printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
-            printf "Please retrieve the FPGA MAC address with the command provided below.\n"
-            printf "Then run ProgramFPGA.bash again with the --macarp command line option:\n"
-            printf "RUN LOCALLY AS ROOT (on $CPU_NAME): /usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\"\n\n"
-
-            printf "Failed!\n"
-            printf "FPGA is unreachable. Aborting...\n"
-            exit
+                printf "Failed!\n"
+                printf "FPGA is unreachable. Aborting...\n"
+                exit
+            else
+                MAC_ARP=$(getMacArping)
+            fi
         else
             MAC_ARP=$MAC_ARPING
+        fi
+
+        # Check if MAC_ARP is set 
+        if [ -z $MAC_ARP ]; then                                                                                                              
+            printf "Failed!\n"
+            
+            # Arping should not fail, even in FSB mode.           
+            printf "FPGA is unreachable. Aborting...\n"             
+            exit
+        else
             printf "FPGA connection OK!\n"
         fi
     else
@@ -651,14 +671,24 @@ else
         printf "FPGA unreachable!\n"
     else
         # But on linux-RT, we try with arping first
-        printf "Failed!\n\n"
+        printf "Failed!\n"
 
-        printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
-        printf "Check the connection between CPU and FPGA with arping using the following commands (requires root password):\n"
-        printf "REMOTELY: $CPU_EXEC "
-        printf "\"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\" \n"
-        printf "LOCALLY (on $CPU_NAME): su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\n\n"
-        printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
+        if [ -z $ROOT_PASSWD ]; then
+            printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
+            printf "Check the connection between CPU and FPGA with arping using the following commands (requires root password):\n"
+            printf "REMOTELY: $CPU_EXEC "
+            printf "\"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\" \n"
+            printf "LOCALLY (on $CPU_NAME): su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\n\n"
+            printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
+        else
+            printf "Connection between CPU and FPGA (using arping):   "
+            CMD="$ROOT_AUTH $CPU_EXEC \"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
+            if eval $CMD; then
+                printf "FPGA unreachable!\n"
+            else
+                printf "FPGA connection OK!\n"
+            fi
+        fi
     fi
 fi
 
