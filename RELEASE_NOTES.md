@@ -1,5 +1,10 @@
 #  Release notes for ProgramFPGA bash script
 
+## R1.2.3: 2024-05-24 M. Skoufis 
+- Bug fix: Fix eth interface parsing
+           Add ways to handle new root password on linuxRT
+           Add option to pass MAC address at the command line
+
 ## R1.2.2: 2022-09-28 M. Skoufis 
 - Bug fix: Invert logical checks for ping and arping
 
