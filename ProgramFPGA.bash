@@ -374,7 +374,7 @@ else
 fi
 
 # Programming method to use
-printf "Programming method to use:                         "
+printf "Programming method to use:                        "
 if [ $USE_FSB ]; then
     printf "1st stage boot\n"
 else
@@ -456,7 +456,7 @@ else
                 printf "Requires Root Password\n\n"
                 printf "Unfortunatelly, it was not possible to ping the FPGA.\n" 
                 printf "Please retrieve the FPGA MAC address with the command provided below.\n"
-                printf "Then run ProgramFPGA.bash again with the --macarp command line option:\n\n"
+                printf "Then run ProgramFPGA.bash again with the --macarp command line option followed by the FPGA MAC address:\n\n"
                 printf "RUN LOCALLY AS ROOT (on $CPU_NAME): /usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\"\n\n"
 
                 printf "Failed!\n"
@@ -663,12 +663,19 @@ printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
 printf "Connection between CPU and FPGA (using ping):     "
 # Trying first with ping
-if ! $CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null" ; then
+if $($CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null") ; then
     printf "FPGA connection OK!\n"
 else
     # On nor-RT linux, the test failed
     if [ -z $RT ]; then
-        printf "FPGA unreachable!\n"
+        printf "Failed!\n"
+        printf "Connection between CPU and FPGA (using arping):   "
+        CMD="$CPU_EXEC \"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
+        if eval $CMD; then
+            printf "FPGA unreachable!\n"
+        else
+            printf "FPGA connection OK!\n"
+        fi
     else
         # But on linux-RT, we try with arping first
         printf "Failed!\n"
