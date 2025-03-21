@@ -1,5 +1,7 @@
 # Bash script to program the HPS FPGA image.
 
+[DOE Code](https://www.osti.gov/doecode/biblio/79154)
+
 ## Overview
 
 The propose of this bash script is to automatize the procedure of loading a new image into your FPGA.
