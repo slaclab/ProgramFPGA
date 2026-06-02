@@ -427,7 +427,7 @@ CPU_ETH=$($CPU_EXEC /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}' |
 if [ -z $CPU_ETH ]; then
     printf "Interface not found!\n"
     printf "\n"
-    printf "Aborting as the interace connected to the FPGA was not found.\n"
+    printf "Aborting as the interface connected to the FPGA was not found.\n"
     printf "Make sure an interface is configured correctly based on the shelfmanager's crateID\n"
     printf "\n"
     exit
