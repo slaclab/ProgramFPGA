@@ -135,7 +135,7 @@ rebootFPGA()
         sleep $RETRAY_DELAY
         BSI_STATE=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF4 2> /dev/null | awk '{print $1}')
         EXIT_CODE=$?
-        if [ "$EXIT_CODE" -eq 0 ] && [ $BSI_STATE -eq 3 ]; then
+        if [ "$EXIT_CODE" -eq 0 ] && [ -n "$BSI_STATE" ] && [ $((16#$BSI_STATE)) -eq 3 ]; then
             DONE=1
             break
         fi
