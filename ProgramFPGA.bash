@@ -424,7 +424,7 @@ printf "CPU IP address:                                   $CPU_IP\n"
 printf "Looking interface connected to the FPGA...        "
 CPU_ETH=$($CPU_EXEC /sbin/ifconfig | grep -wB1 $CPU_IP | awk 'NR==1{print $1}' | sed 's/://g')
 
-if [ -z $CPU_ETH ]; then
+if [ -z "$CPU_ETH" ]; then
     printf "Interface not found!\n"
     printf "\n"
     printf "Aborting as the interface connected to the FPGA was not found.\n"
