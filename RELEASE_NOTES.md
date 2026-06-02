@@ -1,4 +1,7 @@
 #  Release notes for ProgramFPGA bash script
+## pre-release:
+- Bug fix: The FPGA returned the state 0x0c and the script was treating this as
+  a number.
 
 ## R1.2.3: 2024-05-24 M. Skoufis 
 - Bug fix: Fix eth interface parsing
