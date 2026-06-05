@@ -285,35 +285,44 @@ fi
 
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
-RT=$($CPU_EXEC /bin/uname -r | grep rt)
-if [ -z $RT ]; then
-    printf "non-RT kernel\n"
-    ARCH=rhel6-x86_64
-else
-    printf "RT kernel\n"
+# Run env.slac.sh in the CPU to retrieve ARCH
+ARCH=$($CPU_EXEC 'sh -s' < env.slac.sh)
+#RT=$($CPU_EXEC /bin/uname -r | grep rt)
+#if [ -z $RT ]; then
+#    printf "non-RT kernel\n"
+#    ARCH=ubuntu2204-x86_64
+#else
+#    printf "RT kernel\n"
+#
+#    # Check buildroot version
+#    printf "Looking for Buildroot version...                  "
+#    BR2015=$($CPU_EXEC /bin/uname -r | grep 3.18.11)
+#    if [ $BR2015 ]; then
+#        printf "buildroot-2015.02-x86_64\n"
+#        ARCH=buildroot-2015.02-x86_64
+#    else
+#        BR2016=$($CPU_EXEC /bin/uname -r | grep 4.8.11)
+#        if [ $BR2016 ]; then
+#            printf "buildroot-2016.11.1\n"
+#            ARCH=buildroot-2016.11.1-x86_64
+#        else
+#            BR2019=$($CPU_EXEC /bin/uname -r | grep 4.14.139)
+#            if [ $BR2019 ]; then
+#                printf "buildroot-2019.08\n"
+#                ARCH=buildroot-2019.08-x86_64
+#            else
+#                printf "Buildroot version not supported!"
+#                exit
+#            fi
+#        fi
+#    fi
+#fi
 
-    # Check buildroot version
-    printf "Looking for Buildroot version...                  "
-    BR2015=$($CPU_EXEC /bin/uname -r | grep 3.18.11)
-    if [ $BR2015 ]; then
-        printf "buildroot-2015.02-x86_64\n"
-        ARCH=buildroot-2015.02-x86_64
-    else
-        BR2016=$($CPU_EXEC /bin/uname -r | grep 4.8.11)
-        if [ $BR2016 ]; then
-            printf "buildroot-2016.11.1\n"
-            ARCH=buildroot-2016.11.1-x86_64
-        else
-            BR2019=$($CPU_EXEC /bin/uname -r | grep 4.14.139)
-            if [ $BR2019 ]; then
-                printf "buildroot-2019.08\n"
-                ARCH=buildroot-2019.08-x86_64
-            else
-                printf "Buildroot version not supported!"
-                exit
-            fi
-        fi
-    fi
+if [ -z $ARCH ] ; then
+    printf "OS version not supported!"
+    exit
+else
+    printf "$ARCH\n"
 fi
 
 # Check if the user chose to provide the root password at the command line

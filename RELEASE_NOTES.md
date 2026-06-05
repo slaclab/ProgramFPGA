@@ -1,4 +1,10 @@
 #  Release notes for ProgramFPGA bash script
+## R1.2.3-ubuntufix-beta01:
+- Changes to run on Ubuntu. This uses a modified copy of CPSW's env.slac.sh. A
+  better idea is to have CPSW provide this file so we don't need to maintain
+  two copies. This beta release shouldn't be merged with pre-release or main.
+  Let's have CPSW improved first.
+
 ## pre-release:
 - Bug fix: The FPGA returned the state 0x0c and the script was treating this as
   a number.
