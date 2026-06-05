@@ -2,7 +2,7 @@ if [ -z "$ARCH" ] ; then
   MACH=`uname -m`
   VERS=`uname -v`
   REL=`uname -r`
-  if  echo $VERS | grep -q "PREEMPT_RT" ; then
+  if  echo $VERS | grep -q "PREEMPT[_| ]RT" ; then
     if  echo $REL | grep -q '6[.]12[.]16' ; then
       ARCH=buildroot-2025.02-
     elif  echo $REL | grep -q '4[.]14[.]139' ; then
