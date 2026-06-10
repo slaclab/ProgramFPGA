@@ -123,7 +123,7 @@ setSecondStageBoot()
 rebootFPGA()
 {
     RETRY_MAX=10
-    RETRAY_DELAY=10
+    RETRY_DELAY=10
 
     printf "Sending reboot command to FPGA...                 "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
@@ -134,7 +134,7 @@ rebootFPGA()
     printf "Waiting for FPGA to boot...                       "
     # Wait until FPGA boots
     for i in $(seq 1 $RETRY_MAX); do
-        sleep $RETRAY_DELAY
+        sleep $RETRY_DELAY
         BSI_STATE=$(ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x34 0xF4 2> /dev/null | awk '{print $1}')
         EXIT_CODE=$?
         if [ "$EXIT_CODE" -eq 0 ] && [[ "$BSI_STATE" =~ ^[0-9a-fA-F]+$ ]] && [ $((16#$BSI_STATE)) -eq 3 ]; then
@@ -144,10 +144,10 @@ rebootFPGA()
     done
 
     if [ -z $DONE ]; then
-        printf "FPGA didn't boot after $(($RETRY_MAX*$RETRAY_DELAY)) seconds. Aborting...\n\n"
+        printf "FPGA didn't boot after $(($RETRY_MAX*$RETRY_DELAY)) seconds. Aborting...\n\n"
         exit
     else
-        printf "FPGA booted after $((i*$RETRAY_DELAY)) seconds\n"
+        printf "FPGA booted after $((i*$RETRY_DELAY)) seconds\n"
     fi
 }
 
