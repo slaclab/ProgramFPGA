@@ -122,8 +122,11 @@ setSecondStageBoot()
 # Reboot FPGA
 rebootFPGA()
 {
-    RETRY_MAX=10
-    RETRY_DELAY=10
+    local RETRY_MAX=10
+    local RETRY_DELAY=10
+
+    local DONE=0
+    local i
 
     printf "Sending reboot command to FPGA...                 "
     ipmitool -I lan -H $SHELFMANAGER -t $IPMB -b 0 -A NONE raw 0x2C 0x0A 0 0 2 0 &> /dev/null
