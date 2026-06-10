@@ -146,7 +146,7 @@ rebootFPGA()
         fi
     done
 
-    if [ -z $DONE ]; then
+    if [ "$DONE" -ne 1 ]; then
         printf "FPGA didn't boot after $(($RETRY_MAX*$RETRY_DELAY)) seconds. Aborting...\n\n"
         exit 1
     else
