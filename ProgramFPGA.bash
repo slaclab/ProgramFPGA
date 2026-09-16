@@ -21,7 +21,7 @@
 # Definitions #
 ###############
 
-# TOP directory, replacing the slac.stanford.edu synlink by slac
+# TOP directory, replacing the slac.stanford.edu symlink by slac
 # which is not always present in the linuxRT CPUs
 TOP=$(dirname -- "$(readlink -f $0)")
 
@@ -286,7 +286,7 @@ fi
 # Check kernel version on CPU
 printf "Looking for CPU kernel type...                    "
 # Run env.slac.sh in the CPU to retrieve ARCH
-ARCH=$($CPU_EXEC 'sh -s' < env.slac.sh)
+ARCH=$($CPU_EXEC 'sh -s' < $TOP/env.slac.sh)
 #RT=$($CPU_EXEC /bin/uname -r | grep rt)
 #if [ -z $RT ]; then
 #    printf "non-RT kernel\n"
