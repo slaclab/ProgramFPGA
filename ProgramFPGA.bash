@@ -130,6 +130,14 @@ rebootFPGA()
     printf "Done\n"
 
     printf "Waiting for FPGA to boot...                       "
+    # If stdout is a terminal, show an elapsed-time counter that redraws in
+    # place (always at the same column, right after the label). Saved cursor
+    # position is restored (\033[u) and the line cleared (\033[K) before each
+    # update, and again before the final message. Skipped on a non-terminal so
+    # redirected logs stay clean.
+    local tty=0
+    if [ -t 1 ]; then tty=1; printf '\033[s'; fi
+
     # Wait until FPGA boots
     for i in $(seq 1 $RETRY_MAX); do
         sleep $RETRAY_DELAY
@@ -139,7 +147,10 @@ rebootFPGA()
             DONE=1
             break
         fi
+        if [ $tty -eq 1 ]; then printf '\033[u\033[Kwaited %ds...' "$((i*RETRAY_DELAY))"; fi
     done
+
+    if [ $tty -eq 1 ]; then printf '\033[u\033[K'; fi
 
     if [ -z $DONE ]; then
         printf "FPGA didn't boot after $(($RETRY_MAX*$RETRAY_DELAY)) seconds. Aborting...\n\n"
@@ -147,6 +158,45 @@ rebootFPGA()
     else
         printf "FPGA booted after $((i*$RETRAY_DELAY)) seconds\n"
     fi
+}
+
+# Wait until the FPGA answers ping, or until an overall timeout.
+# After a reboot the FPGA's network stack (ARP) can take a while to come up,
+# well after the IPMI boot state reports ready. A single "ping -w" is not
+# reliable here: when the host is unreachable, ping can exit early on
+# "sendmsg: No route to host" instead of honoring the full deadline. So we
+# poll with short attempts and control the total wait ourselves.
+# Args: $1 = IP to ping, $2 = total timeout in seconds (optional, default 120)
+# Returns 0 if reachable, 1 if it timed out.
+waitForPing()
+{
+    local ip=$1
+    local timeout=${2:-120}   # total seconds to keep trying
+    local interval=5          # seconds between attempts
+    local elapsed=0
+
+    # If stdout is a terminal, show an elapsed-time counter that redraws in
+    # place (always at the same column, right after the caller's label) so the
+    # user can see the script is still working. \033[s saves the cursor
+    # position here; before each update we restore it (\033[u) and clear to end
+    # of line (\033[K), then reprint. On a non-terminal (redirected output) we
+    # skip the escape codes so logs stay clean.
+    local tty=0
+    if [ -t 1 ]; then tty=1; printf '\033[s'; fi
+
+    while [ $elapsed -lt $timeout ]; do
+        # -c 1 one packet, -W 2 wait up to 2s for a reply per attempt
+        if $($CPU_EXEC "/bin/ping -c 1 -W 2 $ip &> /dev/null"); then
+            if [ $tty -eq 1 ]; then printf '\033[u\033[K'; fi
+            return 0
+        fi
+        sleep $interval
+        elapsed=$((elapsed + interval))
+        if [ $tty -eq 1 ]; then printf '\033[u\033[Kwaited %ds...' "$elapsed"; fi
+    done
+
+    if [ $tty -eq 1 ]; then printf '\033[u\033[K'; fi
+    return 1
 }
 
 # Get FPGA's MAC address via IPMI
@@ -170,7 +220,7 @@ getMacArp()
 # Try to arping the FPGA and get its MAC address
 getMacArping()
 {
-    CMD="$ROOT_AUTH $CPU_EXEC \"su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'\" | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\""
+    CMD="$ROOT_AUTH $CPU_EXEC \"$TIMEOUT_CMD su -c '/usr/sbin/arping -c 1 -I $CPU_ETH $FPGA_IP'\" | grep -oE \"([[:xdigit:]]{2}(:)){5}[[:xdigit:]]{2}\""
     MAC=$(eval $CMD)
     echo $MAC
 }
@@ -331,6 +381,17 @@ if ! [ -z $ROOT_PASSWD ]; then
     ROOT_AUTH="echo $ROOT_PASSWD | "
 fi
 
+# When arping is called without root password in the local server, it prompts
+# an interactive "Password:" message and waits for someone to type. This was
+# hidden by a > /dev/null which froze the script forever. If the "timeout"
+# command is available, use it.
+ARPING_TIMEOUT=10
+if $CPU_EXEC "command -v timeout" &> /dev/null; then
+    TIMEOUT_CMD="timeout $ARPING_TIMEOUT"
+else
+    TIMEOUT_CMD=""
+fi
+
 # Choosing the appropiate programming tool binary
 FW_LOADER_BIN=$FIRMWARELOADER_TOP/$ARCH/bin/FirmwareLoader
 
@@ -447,8 +508,9 @@ fi
 # Check connection between CPU and FPGA.
 printf "Testing CPU and FPGA connection (with ping)...    "
 
+
 # Trying first with ping
-if $($CPU_EXEC /bin/ping -c 2 $FPGA_IP &> /dev/null) ; then
+if waitForPing $FPGA_IP 5 ; then
     printf "FPGA connection OK!\n"
 
     # Get the MAC address from the CPU ARP table
@@ -671,19 +733,25 @@ printf "\n"
 printf "New FPGA version:                                 0x$VER_SWAP_NEW\n"
 
 printf "Connection between CPU and FPGA (using ping):     "
-# Trying first with ping
-if $($CPU_EXEC "/bin/ping -c 2 $FPGA_IP &> /dev/null") ; then
+# Trying first with ping. Poll and retry, since the FPGA can take a while to
+# start answering on the network after a reboot.
+if waitForPing $FPGA_IP 35 ; then
     printf "FPGA connection OK!\n"
 else
     # On nor-RT linux, the test failed
     if [ -z $RT ]; then
         printf "Failed!\n"
         printf "Connection between CPU and FPGA (using arping):   "
-        CMD="$CPU_EXEC \"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
+        CMD="$CPU_EXEC \"$TIMEOUT_CMD su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
         if eval $CMD; then
-            printf "FPGA unreachable!\n"
-        else
             printf "FPGA connection OK!\n"
+        else
+            printf "FPGA unreachable or root password not provided for arping\n"
+            printf "\nYou can manually check the connection between CPU and FPGA with arping using the following commands (requires root password):\n"
+            printf "REMOTELY: $CPU_EXEC "
+            printf "\"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\" \n"
+            printf "LOCALLY (on $CPU_NAME): su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\n\n"
+            printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
         fi
     else
         # But on linux-RT, we try with arping first
@@ -698,11 +766,16 @@ else
             printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
         else
             printf "Connection between CPU and FPGA (using arping):   "
-            CMD="$ROOT_AUTH $CPU_EXEC \"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
+            CMD="$ROOT_AUTH $CPU_EXEC \"$TIMEOUT_CMD su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP' &> /dev/null\""
             if eval $CMD; then
-                printf "FPGA unreachable!\n"
-            else
                 printf "FPGA connection OK!\n"
+            else
+                printf "FPGA unreachable!\n"
+                printf "\nYou can manually check the connection between CPU and FPGA with arping using the following commands (requires root password):\n"
+                printf "REMOTELY: $CPU_EXEC "
+                printf "\"su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\" \n"
+                printf "LOCALLY (on $CPU_NAME): su -c '/usr/sbin/arping -c 2 -I $CPU_ETH $FPGA_IP'\n\n"
+                printf "If the number of sent probes is equal to the number of received responses, the FPGA connection is OK.\n"
             fi
         fi
     fi
